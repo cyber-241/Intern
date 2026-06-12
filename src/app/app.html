@@ -7,8 +7,8 @@
       <span class="badge">{{ employeeData.data.id }}</span>
     </div>
     <nav class="nav-menu">
-      <a href="#" class="active"><span></span> Bảng điều khiển</a>
-      <a href="#"><span>⏱</span> Lịch sử chấm công</a>
+      <a routerLink="/dashboard" routerLinkActive="active">Bảng điều khiển</a>
+      <a routerLink="/history" routerLinkActive="active">Lịch sử chấm công</a>
     </nav>
   </aside>
 
@@ -16,40 +16,18 @@
     <header class="top-header">
       <h1>Hệ Thống Chấm Công</h1>
       <div class="user-actions">
-        <button class="btn-outline"> Thông báo</button>
+        <button class="btn-outline">Thông báo</button>
         <button 
           class="btn-primary" 
           [style.backgroundColor]="buttonColor"
           (click)="checkIn()">
-           Chấm công ngay
+          Chấm công ngay
         </button>
       </div>
     </header>
 
     <div class="grid-container">
-      <section class="stat-card">
-        <h2>Thông tin nhân viên</h2>
-        <div class="info-row"><span class="label">Mã số:</span> <span class="value">{{ employeeData.data.id }}</span></div>
-        <div class="info-row"><span class="label">Họ và tên:</span> <span class="value">{{ employeeData.data.fullName }}</span></div>
-        <div class="info-row"><span class="label">Phòng ban:</span> <span class="value">{{ employeeData.data.department }}</span></div>
-      </section>
-
-      <section class="stat-card">
-        <h2>Lịch sử tuần này</h2>
-        <div class="task-list">
-          @for (record of attendanceList.data; track record.id) {
-            <div class="task-item">
-              <div class="task-info">
-                <h4>Ngày: {{ record.date }}</h4>
-                <span class="task-time">Vào: {{ record.checkIn }} - Ra: {{ record.checkOut }}</span>
-              </div>
-              <span class="status-badge" [class]="record.status === 'Đúng giờ' ? 'done' : 'todo'">
-                {{ record.status }}
-              </span>
-            </div>
-          }
-        </div>
-      </section>
+      <router-outlet></router-outlet>
     </div>
   </main>
 </div>
