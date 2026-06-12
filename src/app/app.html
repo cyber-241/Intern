@@ -2,49 +2,49 @@
   <aside class="sidebar">
     <div class="profile-section">
       <div class="avatar">NBH</div>
-      <h2>{{ userData.data.fullName }}</h2>
-      <p>{{ userData.data.position }}</p>
-      <span class="badge">{{ userData.data.id }}</span>
+      <h2>{{ employeeData.data.fullName }}</h2>
+      <p>{{ employeeData.data.department }}</p>
+      <span class="badge">{{ employeeData.data.id }}</span>
     </div>
     <nav class="nav-menu">
-      <a href="#" class="active"><span></span> Tổng quan</a>
-      <a href="#"><span></span> Báo cáo tiến độ</a>
+      <a href="#" class="active"><span></span> Bảng điều khiển</a>
+      <a href="#"><span>⏱</span> Lịch sử chấm công</a>
     </nav>
   </aside>
 
   <main class="main-content">
     <header class="top-header">
-      <h1>Dashboard Thực Tập Sinh</h1>
+      <h1>Hệ Thống Chấm Công</h1>
       <div class="user-actions">
         <button class="btn-outline"> Thông báo</button>
         <button 
           class="btn-primary" 
           [style.backgroundColor]="buttonColor"
-          (click)="sendReport()">
-           Gửi báo cáo
+          (click)="checkIn()">
+           Chấm công ngay
         </button>
       </div>
     </header>
 
     <div class="grid-container">
       <section class="stat-card">
-        <h2>Thông tin cá nhân</h2>
-        <div class="info-row"><span class="label">Mã số:</span> <span class="value">{{ userData.data.id }}</span></div>
-        <div class="info-row"><span class="label">Họ và tên:</span> <span class="value">{{ userData.data.fullName }}</span></div>
-        <div class="info-row"><span class="label">Vị trí:</span> <span class="value">{{ userData.data.position }}</span></div>
+        <h2>Thông tin nhân viên</h2>
+        <div class="info-row"><span class="label">Mã số:</span> <span class="value">{{ employeeData.data.id }}</span></div>
+        <div class="info-row"><span class="label">Họ và tên:</span> <span class="value">{{ employeeData.data.fullName }}</span></div>
+        <div class="info-row"><span class="label">Phòng ban:</span> <span class="value">{{ employeeData.data.department }}</span></div>
       </section>
 
       <section class="stat-card">
-        <h2>Mục tiêu Tuần 1</h2>
+        <h2>Lịch sử tuần này</h2>
         <div class="task-list">
-          @for (task of taskList.data; track task.id) {
+          @for (record of attendanceList.data; track record.id) {
             <div class="task-item">
               <div class="task-info">
-                <h4>{{ task.title }}</h4>
-                <span class="task-time">{{ task.time }}</span>
+                <h4>Ngày: {{ record.date }}</h4>
+                <span class="task-time">Vào: {{ record.checkIn }} - Ra: {{ record.checkOut }}</span>
               </div>
-              <span class="status-badge" [class]="task.status === 'Hoàn thành' ? 'done' : (task.status === 'Đang làm' ? 'doing' : 'todo')">
-                {{ task.status }}
+              <span class="status-badge" [class]="record.status === 'Đúng giờ' ? 'done' : 'todo'">
+                {{ record.status }}
               </span>
             </div>
           }

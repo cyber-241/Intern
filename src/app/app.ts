@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { ApiResponse, UserInfo, TaskInfo } from './models/data.model';
+import { ApiResponse, EmployeeInfo, AttendanceRecord } from './models/data.model';
 
 @Component({
   selector: 'app-root',
@@ -8,21 +8,21 @@ import { ApiResponse, UserInfo, TaskInfo } from './models/data.model';
   styleUrls: ['./app.css']
 })
 export class App {
-  userData: ApiResponse<UserInfo> = {
+  employeeData: ApiResponse<EmployeeInfo> = {
     data: {
-      id: 'INT-001',
+      id: 'EMP-1002',
       fullName: 'Nguyễn Bảo Hân',
-      position: 'Software Engineering Intern'
+      department: 'Phòng Kỹ Thuật'
     },
     status: 200,
     message: 'Success'
   };
 
-  taskList: ApiResponse<TaskInfo[]> = {
+  attendanceList: ApiResponse<AttendanceRecord[]> = {
     data: [
-      { id: 1, title: 'Tìm hiểu TypeScript & Interface', status: 'Hoàn thành', time: '2 giờ trước' },
-      { id: 2, title: 'Thực hành Data Binding', status: 'Đang làm', time: '10 phút trước' },
-      { id: 3, title: 'Push code lên GitHub', status: 'Chưa bắt đầu', time: 'Dự kiến hôm nay' }
+      { id: 1, date: '12/06/2026', checkIn: '07:55', checkOut: '17:05', status: 'Đúng giờ' },
+      { id: 2, date: '11/06/2026', checkIn: '08:15', checkOut: '17:00', status: 'Đi trễ' },
+      { id: 3, date: '10/06/2026', checkIn: '07:50', checkOut: '17:10', status: 'Đúng giờ' }
     ],
     status: 200,
     message: 'Success'
@@ -30,7 +30,7 @@ export class App {
 
   buttonColor: string = '#4318ff';
 
-  sendReport(): void {
-    alert('Đã gửi báo cáo tuần 1!');
+  checkIn(): void {
+    alert('Chấm công thành công!');
   }
 }

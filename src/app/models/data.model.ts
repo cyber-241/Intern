@@ -4,15 +4,16 @@ export interface ApiResponse<T> {
   message: string;
 }
 
-export interface UserInfo {
+export interface EmployeeInfo {
   id: string;
   fullName: string;
-  position: string;
+  department: string;
 }
 
-export interface TaskInfo {
+export interface AttendanceRecord {
   id: number;
-  title: string;
+  date: string;
+  checkIn: string;
+  checkOut: string;
   status: string;
-  time: string;
 }
