@@ -17,3 +17,16 @@ export interface AttendanceRecord {
   checkOut: string;
   status: string;
 }
+
+export interface AttendanceFormData {
+  date: string;
+  checkIn: string;
+  checkOut: string;
+  status: string;
+}
+
+export interface AttendanceApiResponse {
+  success: boolean;
+  message: string;
+  data: AttendanceRecord | AttendanceRecord[];
+}
