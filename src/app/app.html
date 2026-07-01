@@ -1,32 +1,79 @@
 <div class="dashboard-layout">
-  <aside class="sidebar">
+  <!-- Mobile Backdrop -->
+  @if (sidebarOpen) {
+  <div class="sidebar-backdrop show" (click)="toggleSidebar()"></div>
+  }
+
+  <!-- Sidebar -->
+  <aside class="sidebar" [class.open]="sidebarOpen">
+    <div class="sidebar-brand">
+      <div class="brand-icon">
+        <span class="material-icons-round">fingerprint</span>
+      </div>
+      <div class="brand-text">
+        AttendPro
+        <small>Attendance Management</small>
+      </div>
+    </div>
+
     <div class="profile-section">
       <div class="avatar">NBH</div>
       <h2>{{ employeeData.data.fullName }}</h2>
       <p>{{ employeeData.data.department }}</p>
       <span class="badge">{{ employeeData.data.id }}</span>
     </div>
+
+    <div class="nav-label">Menu chính</div>
     <nav class="nav-menu">
-      <a routerLink="/dashboard" routerLinkActive="active">Bảng điều khiển</a>
-      <a routerLink="/history" routerLinkActive="active">Lịch sử chấm công</a>
+      <a routerLink="/dashboard" routerLinkActive="active" (click)="closeSidebar()">
+        <span class="material-icons-round">dashboard</span>
+        Bảng điều khiển
+      </a>
+      <a routerLink="/history" routerLinkActive="active" (click)="closeSidebar()">
+        <span class="material-icons-round">history</span>
+        Lịch sử chấm công
+      </a>
     </nav>
+
+    <div class="sidebar-footer">
+      <span class="material-icons-round">info</span>
+      Phiên bản 1.0
+    </div>
   </aside>
 
+  <!-- Main Content -->
   <main class="main-content">
     <header class="top-header">
-      <h1>Hệ Thống Chấm Công</h1>
-      <div class="user-actions">
-        <button class="btn-outline">Thông báo</button>
-        <button 
-          class="btn-primary" 
-          [style.backgroundColor]="buttonColor"
-          (click)="checkIn()">
-          Chấm công ngay
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button class="mobile-toggle" (click)="toggleSidebar()">
+          <span class="material-icons-round">menu</span>
+        </button>
+        <div class="header-left">
+          <h1>Hệ Thống Chấm Công</h1>
+          <div class="header-subtitle">
+            <span class="material-icons-round">calendar_today</span>
+            {{ currentDateStr }}
+          </div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="header-clock">
+          <span class="material-icons-round">schedule</span>
+          {{ currentTimeStr }}
+        </div>
+        <button class="btn-icon">
+          <span class="material-icons-round">notifications_none</span>
+          <span class="notification-dot"></span>
+        </button>
+        <button class="btn-checkin" (click)="checkIn()">
+          <span class="material-icons-round">login</span>
+          Chấm công
         </button>
       </div>
     </header>
 
-    <div class="grid-container">
+    <div class="content-area">
       <router-outlet></router-outlet>
     </div>
   </main>
