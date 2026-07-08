@@ -2,13 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
 
 /**
- * App Routes - Week 5: Lazy Loading + Auth Guard
- *
- * Lazy Loading: Dùng loadComponent() để tải component theo nhu cầu
- * → Giảm bundle size ban đầu, tăng tốc load trang
- *
- * Auth Guard: Bảo vệ các route yêu cầu đăng nhập
- * → Redirect về /login nếu chưa authenticated
+ * App Routes - Week 6: Thêm Register + Forgot Password
  */
 export const routes: Routes = [
   {
@@ -20,6 +14,16 @@ export const routes: Routes = [
     path: 'login',
     loadComponent: () =>
       import('./login.component').then(m => m.LoginComponent)
+  },
+  {
+    path: 'register',
+    loadComponent: () =>
+      import('./register.component').then(m => m.RegisterComponent)
+  },
+  {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./forgot-password.component').then(m => m.ForgotPasswordComponent)
   },
   {
     path: 'dashboard',

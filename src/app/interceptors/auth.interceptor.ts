@@ -1,18 +1,17 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
+import { AuthService } from '../services/auth.service';
 
 /**
- * Auth Interceptor (Week 5 - Angular Interceptor)
- * - Tự động gắn header Authorization: Bearer <token> vào mỗi request
- * - Xử lý lỗi 401 Unauthorized → redirect về login
+ * Auth Interceptor — Tuần 6: Dùng AuthService để lấy token
+ * Tự động gắn header Authorization: Bearer <token> vào mỗi request
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const router = inject(Router);
+  const authService = inject(AuthService);
 
-  // Lấy token từ localStorage
-  const token = localStorage.getItem('auth_token');
+  // Lấy token từ AuthService
+  const token = authService.getToken();
 
   // Clone request và gắn thêm header Authorization nếu có token
   let authReq = req;
@@ -24,15 +23,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     });
   }
 
-  // Gửi request và xử lý lỗi
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401) {
-        // Token hết hạn hoặc không hợp lệ → xóa token và redirect về login
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_info');
-        router.navigate(['/login']);
-      }
+      // Lỗi 401 sẽ được xử lý bởi errorInterceptor
       return throwError(() => error);
     })
   );

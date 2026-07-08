@@ -1,11 +1,13 @@
 import { Component, signal } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, RouterModule],
   styles: [`
     .login-page {
       min-height: 100vh;
@@ -225,6 +227,32 @@ import { FormsModule } from '@angular/forms';
       font-size: 0.75rem;
       color: #94a3b8;
     }
+
+    .login-links {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .login-link {
+      font-size: 0.82rem;
+      color: #4318ff;
+      text-decoration: none;
+      font-weight: 500;
+      transition: 0.2s;
+    }
+
+    .login-link:hover {
+      text-decoration: underline;
+      opacity: 0.85;
+    }
+
+    .login-link-divider {
+      color: #cbd5e1;
+      font-size: 0.75rem;
+    }
   `],
   template: `
     <div class="login-page">
@@ -280,10 +308,10 @@ import { FormsModule } from '@angular/forms';
           }
         </button>
 
-        <div class="login-hint">
-          <strong>Tài khoản demo:</strong><br>
-          Tên đăng nhập: <strong>admin</strong><br>
-          Mật khẩu: <strong>123456</strong>
+        <div class="login-links">
+          <a class="login-link" routerLink="/forgot-password">Quên mật khẩu?</a>
+          <span class="login-link-divider">|</span>
+          <a class="login-link" routerLink="/register">Đăng ký tài khoản</a>
         </div>
 
         <div class="login-footer">
@@ -300,11 +328,12 @@ export class LoginComponent {
   isLoading = signal(false);
 
   constructor(
+    private authService: AuthService,
     private router: Router,
     private route: ActivatedRoute
   ) {
     // Nếu đã login rồi → redirect về dashboard
-    if (localStorage.getItem('auth_token')) {
+    if (this.authService.isLoggedIn()) {
       this.router.navigate(['/dashboard']);
     }
   }
@@ -320,26 +349,24 @@ export class LoginComponent {
 
     this.isLoading.set(true);
 
-    // Mock login (giả lập API call với setTimeout)
-    setTimeout(() => {
-      if (this.username === 'admin' && this.password === '123456') {
-        // Login thành công → lưu token và thông tin user
-        localStorage.setItem('auth_token', 'mock-jwt-token-attendpro-2026');
-        localStorage.setItem('user_info', JSON.stringify({
-          id: 'EMP-1002',
-          fullName: 'Nguyễn Bảo Hân',
-          department: 'Phòng Kỹ Thuật',
-          role: 'employee'
-        }));
-
-        // Redirect về trang trước đó hoặc dashboard
+    // Tuần 6: Gọi API thật thay vì mock setTimeout
+    this.authService.login(this.username.trim(), this.password).subscribe({
+      next: () => {
+        // Login thành công → redirect về trang trước hoặc dashboard
         const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
         this.router.navigate([returnUrl]);
-      } else {
-        this.errorMessage.set('Tên đăng nhập hoặc mật khẩu không đúng.');
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        if (err.status === 401) {
+          this.errorMessage.set('Tên đăng nhập hoặc mật khẩu không đúng.');
+        } else if (err.status === 0) {
+          this.errorMessage.set('Không thể kết nối đến máy chủ. Vui lòng thử lại!');
+        } else {
+          this.errorMessage.set('Đăng nhập thất bại. Vui lòng thử lại.');
+        }
+        this.isLoading.set(false);
       }
-
-      this.isLoading.set(false);
-    }, 800);
+    });
   }
 }

@@ -1,6 +1,7 @@
-import { Component, OnInit, OnDestroy, signal } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
-import { ApiResponse, EmployeeInfo } from './models/data.model';
+import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { RouterModule } from '@angular/router';
+import { AuthService } from './services/auth.service';
+import { NotificationService, Notification } from './services/notification.service';
 
 @Component({
   selector: 'app-root',
@@ -10,38 +11,21 @@ import { ApiResponse, EmployeeInfo } from './models/data.model';
   styleUrls: ['./app.css']
 })
 export class App implements OnInit, OnDestroy {
-  employeeData: ApiResponse<EmployeeInfo> = {
-    data: {
-      employeeId: 2,
-      employeeCode: 'EMP-1002',
-      fullName: 'Nguyễn Bảo Hân',
-      email: 'han.nb@attendpro.vn',
-      phone: '0901234502',
-      gender: 'Nữ',
-      dateOfBirth: '22/07/1995',
-      address: '456 Lê Lợi, Q3, TP.HCM',
-      departmentId: 1,
-      departmentName: 'Phòng Kỹ Thuật',
-      positionId: 5,
-      positionName: 'Nhân Viên',
-      salary: 15000000,
-      hireDate: '15/06/2024',
-      isActive: true,
-      avatar: null,
-      // Aliases cho template cũ
-      id: 'EMP-1002',
-      department: 'Phòng Kỹ Thuật'
-    },
-    success: true,
-    message: 'Success'
-  };
+  // Tuần 6: Lấy thông tin user từ AuthService (reactive signal)
+  currentUser = computed(() => this.authService.currentUser());
 
   currentTimeStr = signal<string>('');
   currentDateStr = signal<string>('');
   userMenuOpen: boolean = false;
   private timerInterval: any;
 
-  constructor(private router: Router) {}
+  // Tuần 6: Toast notifications
+  notifications = computed(() => this.notificationService.notifications());
+
+  constructor(
+    private authService: AuthService,
+    private notificationService: NotificationService
+  ) {}
 
   ngOnInit(): void {
     this.updateDateTime();
@@ -77,8 +61,10 @@ export class App implements OnInit, OnDestroy {
 
   logout(): void {
     this.userMenuOpen = false;
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_info');
-    this.router.navigate(['/login']);
+    this.authService.logout(); // Tuần 6: dùng AuthService thay vì xóa localStorage thủ công
+  }
+
+  dismissToast(id: number): void {
+    this.notificationService.dismiss(id);
   }
 }
