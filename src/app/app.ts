@@ -1,5 +1,5 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
+import { Router, RouterModule } from '@angular/router';
 import { ApiResponse, EmployeeInfo } from './models/data.model';
 
 @Component({
@@ -12,18 +12,36 @@ import { ApiResponse, EmployeeInfo } from './models/data.model';
 export class App implements OnInit, OnDestroy {
   employeeData: ApiResponse<EmployeeInfo> = {
     data: {
-      id: 'EMP-1002',
+      employeeId: 2,
+      employeeCode: 'EMP-1002',
       fullName: 'Nguyễn Bảo Hân',
+      email: 'han.nb@attendpro.vn',
+      phone: '0901234502',
+      gender: 'Nữ',
+      dateOfBirth: '22/07/1995',
+      address: '456 Lê Lợi, Q3, TP.HCM',
+      departmentId: 1,
+      departmentName: 'Phòng Kỹ Thuật',
+      positionId: 5,
+      positionName: 'Nhân Viên',
+      salary: 15000000,
+      hireDate: '15/06/2024',
+      isActive: true,
+      avatar: null,
+      // Aliases cho template cũ
+      id: 'EMP-1002',
       department: 'Phòng Kỹ Thuật'
     },
-    status: 200,
+    success: true,
     message: 'Success'
   };
 
-  currentTimeStr: string = '';
-  currentDateStr: string = '';
-  sidebarOpen: boolean = false;
+  currentTimeStr = signal<string>('');
+  currentDateStr = signal<string>('');
+  userMenuOpen: boolean = false;
   private timerInterval: any;
+
+  constructor(private router: Router) {}
 
   ngOnInit(): void {
     this.updateDateTime();
@@ -38,32 +56,29 @@ export class App implements OnInit, OnDestroy {
 
   updateDateTime(): void {
     const now = new Date();
-    this.currentTimeStr = now.toLocaleTimeString('vi-VN', {
+    this.currentTimeStr.set(now.toLocaleTimeString('vi-VN', {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit'
-    });
+    }));
 
     const days = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
     const dayName = days[now.getDay()];
-    this.currentDateStr = `${dayName}, ${now.toLocaleDateString('vi-VN', {
+    this.currentDateStr.set(`${dayName}, ${now.toLocaleDateString('vi-VN', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
-    })}`;
+    })}`);
   }
 
-  toggleSidebar(): void {
-    this.sidebarOpen = !this.sidebarOpen;
+  toggleUserMenu(): void {
+    this.userMenuOpen = !this.userMenuOpen;
   }
 
-  closeSidebar(): void {
-    this.sidebarOpen = false;
-  }
-
-  checkIn(): void {
-    const now = new Date();
-    const time = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-    alert(`Chấm công thành công lúc ${time}!`);
+  logout(): void {
+    this.userMenuOpen = false;
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_info');
+    this.router.navigate(['/login']);
   }
 }

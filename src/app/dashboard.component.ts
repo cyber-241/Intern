@@ -2,6 +2,18 @@ import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { AttendanceService } from './services/attendance.service';
 import { AttendanceRecord } from './models/data.model';
 
+/**
+ * Constants — Dùng tên rõ ràng thay vì magic numbers (theo feedback mentor)
+ */
+const SUNDAY = 0;
+const SATURDAY = 6;
+const WORK_START_HOUR = 8;
+const WORK_START_MINUTE = 0;
+const WORK_END_HOUR = 17;
+const WORK_END_MINUTE = 30;
+const WORK_START_IN_MINUTES = WORK_START_HOUR * 60 + WORK_START_MINUTE;
+const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -211,8 +223,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const now = new Date();
     const dayOfWeek = now.getDay();
 
-    // Kiểm tra chỉ chấm công Thứ 2 - Thứ 6
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
+    // Kiểm tra Thứ 7 và Chủ nhật — dùng constants rõ ràng
+    if (dayOfWeek === SUNDAY || dayOfWeek === SATURDAY) {
       alert('⚠️ Hôm nay là cuối tuần! Chỉ được chấm công từ Thứ 2 đến Thứ 6.');
       return;
     }
@@ -234,8 +246,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       const checkInMinutes = this.parseTimeStr(todayRecord.checkIn);
       const checkOutMinutes = this.parseTimeStr(time);
       
-      // Giờ làm: 08:00 (480 phút) - 17:30 (1050 phút)
-      const isLate = checkInMinutes > 480 || checkOutMinutes < 1050;
+      // Đi trễ nếu vào sau giờ bắt đầu HOẶC ra trước giờ kết thúc
+      const isLate = checkInMinutes > WORK_START_IN_MINUTES || checkOutMinutes < WORK_END_IN_MINUTES;
 
       const updateData = {
         ...todayRecord,
@@ -257,8 +269,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     } else {
       // Thực hiện CHẤM CÔNG VÀO
-      const isLate = now.getHours() > 8 || (now.getHours() === 8 && now.getMinutes() > 0);
-
       const newRecord = {
         date: date,
         checkIn: time,
