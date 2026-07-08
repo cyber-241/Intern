@@ -1,80 +1,146 @@
 <div class="dashboard-layout">
-  <!-- Mobile Backdrop -->
-  @if (sidebarOpen) {
-  <div class="sidebar-backdrop show" (click)="toggleSidebar()"></div>
-  }
-
-  <!-- Sidebar -->
-  <aside class="sidebar" [class.open]="sidebarOpen">
-    <div class="sidebar-brand">
-      <div class="brand-icon">
-        <span class="material-icons-round">fingerprint</span>
-      </div>
-      <div class="brand-text">
-        AttendPro
-        <small>Attendance Management</small>
-      </div>
-    </div>
-
-    <div class="profile-section">
-      <div class="avatar">NBH</div>
-      <h2>{{ employeeData.data.fullName }}</h2>
-      <p>{{ employeeData.data.department }}</p>
-      <span class="badge">{{ employeeData.data.id }}</span>
-    </div>
-
-    <div class="nav-label">Menu chính</div>
-    <nav class="nav-menu">
-      <a routerLink="/dashboard" routerLinkActive="active" (click)="closeSidebar()">
-        <span class="material-icons-round">dashboard</span>
-        Bảng điều khiển
-      </a>
-      <a routerLink="/history" routerLinkActive="active" (click)="closeSidebar()">
-        <span class="material-icons-round">history</span>
-        Lịch sử chấm công
-      </a>
-    </nav>
-
-    <div class="sidebar-footer">
-      <span class="material-icons-round">info</span>
-      Phiên bản 1.0
-    </div>
-  </aside>
-
   <!-- Main Content -->
   <main class="main-content">
     <header class="top-header">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <button class="mobile-toggle" (click)="toggleSidebar()">
-          <span class="material-icons-round">menu</span>
-        </button>
-        <div class="header-left">
-          <h1>Hệ Thống Chấm Công</h1>
-          <div class="header-subtitle">
-            <span class="material-icons-round">calendar_today</span>
-            {{ currentDateStr }}
+      <div class="header-left">
+        <div class="header-brand">
+          <div class="brand-icon-small">
+            <span class="material-icons-round">fingerprint</span>
+          </div>
+          <div class="brand-text-dark">
+            AttendPro
           </div>
         </div>
+      </div>
+
+      <div class="header-center">
+        <nav class="top-nav-menu">
+          <a routerLink="/dashboard" routerLinkActive="active">
+            <span class="material-icons-round">dashboard</span>
+            Bảng điều khiển
+          </a>
+          <a routerLink="/history" routerLinkActive="active">
+            <span class="material-icons-round">history</span>
+            Lịch sử chấm công
+          </a>
+        </nav>
       </div>
 
       <div class="header-right">
         <div class="header-clock">
           <span class="material-icons-round">schedule</span>
-          {{ currentTimeStr }}
+          {{ currentTimeStr() }}
         </div>
-        <button class="btn-icon">
+        <button class="btn-icon" title="Thông báo">
           <span class="material-icons-round">notifications_none</span>
           <span class="notification-dot"></span>
         </button>
-        <button class="btn-checkin" (click)="checkIn()">
-          <span class="material-icons-round">login</span>
-          Chấm công
-        </button>
+        <div class="header-user" (click)="toggleUserMenu()">
+          <div class="header-avatar">NBH</div>
+          <div class="header-user-info">
+            <span class="header-user-name">{{ employeeData.data.fullName }}</span>
+            <span class="header-user-role">{{ employeeData.data.department }}</span>
+          </div>
+          <span class="material-icons-round header-user-arrow">expand_more</span>
+        </div>
+        @if (userMenuOpen) {
+          <div class="user-dropdown">
+            <div class="user-dropdown-header">
+              <div class="header-avatar" style="width: 40px; height: 40px; font-size: 0.85rem;">NBH</div>
+              <div>
+                <div style="font-weight: 600; font-size: 0.88rem; color: var(--text-primary);">{{ employeeData.data.fullName }}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ employeeData.data.id }}</div>
+              </div>
+            </div>
+            <div class="user-dropdown-divider"></div>
+            <a class="user-dropdown-item" routerLink="/dashboard" (click)="userMenuOpen = false">
+              <span class="material-icons-round">person</span>
+              Hồ sơ cá nhân
+            </a>
+            <a class="user-dropdown-item" routerLink="/history" (click)="userMenuOpen = false">
+              <span class="material-icons-round">settings</span>
+              Cài đặt
+            </a>
+            <div class="user-dropdown-divider"></div>
+            <a class="user-dropdown-item logout" (click)="logout()">
+              <span class="material-icons-round">logout</span>
+              Đăng xuất
+            </a>
+          </div>
+        }
       </div>
     </header>
 
     <div class="content-area">
       <router-outlet></router-outlet>
     </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-top">
+        <div class="footer-brand-section">
+          <div class="footer-brand-logos">
+            <div class="footer-brand-logo">
+              <span class="material-icons-round" style="color: var(--primary);">business</span>
+              <span>AttendPro Co.</span>
+            </div>
+            <div class="footer-brand-logo">
+              <span class="material-icons-round" style="color: #ff9800;">fingerprint</span>
+              <span>AttendPro Chấm công</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer-main">
+        <div class="footer-col footer-col-large">
+          <h4 class="footer-heading">CÔNG TY CỔ PHẦN GIẢI PHÁP GIÁO DỤC ASC</h4>
+          <p class="footer-text">2 Nguyễn Thế Lộc, Phường Bảy Hiền, Thành phố Hồ Chí Minh, Việt Nam</p>
+          <p class="footer-text">Thời gian làm việc: 8h - 17h30, thứ 2 - thứ 6</p>
+        </div>
+        <div class="footer-col">
+          <h4 class="footer-heading">Công ty</h4>
+          <a href="#" class="footer-link">Về AttendPro</a>
+          <a href="#" class="footer-link">Tin tức</a>
+          <a href="#" class="footer-link">Tuyển dụng</a>
+          <a href="#" class="footer-link">Hợp tác</a>
+          <a href="#" class="footer-link">Liên hệ</a>
+          <a href="#" class="footer-link">Chính sách bảo mật</a>
+          <a href="#" class="footer-link">Thông tin thanh toán</a>
+        </div>
+        <div class="footer-col">
+          <h4 class="footer-heading">Liên kết</h4>
+          <a href="#" class="footer-link">Facebook</a>
+          <a href="#" class="footer-link">Youtube</a>
+          <a href="#" class="footer-link">LinkedIn</a>
+          <a href="#" class="footer-link">Zalo</a>
+          <a href="#" class="footer-link">Tiktok</a>
+        </div>
+        <div class="footer-col">
+          <h4 class="footer-heading">Blogs</h4>
+          <a href="#" class="footer-link">Tài chính - Kế toán</a>
+          <a href="#" class="footer-link">Quản trị nguồn nhân lực</a>
+          <a href="#" class="footer-link">Marketing - Bán hàng</a>
+          <a href="#" class="footer-link">Quản lý - Điều hành</a>
+          <a href="#" class="footer-link">Kinh doanh bán lẻ</a>
+          <a href="#" class="footer-link">AI & Data</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-bottom-left">
+          <div class="footer-apps">
+            <button class="footer-btn-app"><span class="material-icons-round">apple</span> App Store</button>
+            <button class="footer-btn-app"><span class="material-icons-round">android</span> Google Play</button>
+          </div>
+        </div>
+        <div class="footer-bottom-right">
+          <span class="footer-version"><span class="material-icons-round">verified</span> v2.0 — Tuần 5</span>
+        </div>
+      </div>
+    </footer>
   </main>
 </div>
+
+<!-- Click outside user menu to close -->
+@if (userMenuOpen) {
+  <div class="user-menu-backdrop" (click)="userMenuOpen = false"></div>
+}

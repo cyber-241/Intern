@@ -4,6 +4,39 @@ import { FormsModule } from '@angular/forms';
 import { AttendanceService } from './services/attendance.service';
 import { AttendanceRecord, AttendanceFormData } from './models/data.model';
 
+/**
+ * ===== CONSTANTS - Dễ đọc, dễ bảo trì (theo feedback mentor) =====
+ * Thay vì dùng magic numbers 480, 1050... ta dùng constants có tên rõ ràng
+ */
+const WORK_START_HOUR = 8;
+const WORK_START_MINUTE = 0;
+const WORK_END_HOUR = 17;
+const WORK_END_MINUTE = 30;
+
+// Quy đổi sang phút để so sánh
+const WORK_START_IN_MINUTES = WORK_START_HOUR * 60 + WORK_START_MINUTE;   // = 480
+const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;         // = 1050
+
+// Khoảng giờ hợp lệ cho Check-In (06:00 - 10:00)
+const CHECK_IN_MIN_HOUR = 6;
+const CHECK_IN_MIN_MINUTE = 0;
+const CHECK_IN_MAX_HOUR = 10;
+const CHECK_IN_MAX_MINUTE = 0;
+const CHECK_IN_MIN_IN_MINUTES = CHECK_IN_MIN_HOUR * 60 + CHECK_IN_MIN_MINUTE;   // = 360
+const CHECK_IN_MAX_IN_MINUTES = CHECK_IN_MAX_HOUR * 60 + CHECK_IN_MAX_MINUTE;   // = 600
+
+// Khoảng giờ hợp lệ cho Check-Out (17:30 - 24:00) — theo yêu cầu mới
+const CHECK_OUT_MIN_HOUR = WORK_END_HOUR;
+const CHECK_OUT_MIN_MINUTE = WORK_END_MINUTE;
+const CHECK_OUT_MAX_HOUR = 24;
+const CHECK_OUT_MAX_MINUTE = 0;
+const CHECK_OUT_MIN_IN_MINUTES = CHECK_OUT_MIN_HOUR * 60 + CHECK_OUT_MIN_MINUTE;  // = 1050
+const CHECK_OUT_MAX_IN_MINUTES = CHECK_OUT_MAX_HOUR * 60 + CHECK_OUT_MAX_MINUTE;  // = 1440
+
+// Ngày trong tuần — dễ đọc hơn so với dùng 0, 6 trực tiếp (theo feedback mentor)
+const SUNDAY = 0;
+const SATURDAY = 6;
+
 @Component({
   selector: 'app-history',
   standalone: true,
@@ -85,6 +118,9 @@ import { AttendanceRecord, AttendanceFormData } from './models/data.model';
             <thead>
               <tr>
                 <th>STT</th>
+                <th>Tên nhân viên</th>
+                <th>Phòng ban</th>
+                <th>Chức vụ</th>
                 <th>Ngày</th>
                 <th>Giờ vào</th>
                 <th>Giờ ra</th>
@@ -96,6 +132,13 @@ import { AttendanceRecord, AttendanceFormData } from './models/data.model';
               @for (record of filteredRecords(); track record.id; let i = $index) {
                 <tr>
                   <td class="td-index">{{ i + 1 }}</td>
+                  <td>
+                    <div style="font-weight: 500; color: var(--text-primary);">
+                      {{ record.fullName || 'Nguyễn Bảo Hân' }}
+                    </div>
+                  </td>
+                  <td>{{ record.departmentName || 'Phòng Kỹ thuật' }}</td>
+                  <td>{{ record.positionName || 'Nhân viên' }}</td>
                   <td class="td-date">{{ record.date }}</td>
                   <td>
                     <div class="td-time">
@@ -158,27 +201,29 @@ import { AttendanceRecord, AttendanceFormData } from './models/data.model';
             }
 
             <div class="form-group">
-              <label>Ngày làm việc (dd/MM/yyyy)</label>
+              <label>Ngày làm việc <span class="required">*</span></label>
               <div class="input-with-icon">
                 <span class="material-icons-round">calendar_today</span>
                 <input
-                  type="text"
+                  type="date"
                   class="form-control"
                   [class.is-invalid]="isFieldInvalid('date')"
-                  placeholder="VD: 15/06/2026"
                   formControlName="date"
                 />
               </div>
               @if (isFieldInvalid('date')) {
                 <div class="form-error">
                   @if (attendanceForm.get('date')?.errors?.['required']) {
-                    Vui lòng nhập ngày làm việc.
+                    Vui lòng chọn ngày làm việc.
                   }
-                  @if (attendanceForm.get('date')?.errors?.['pattern'] || attendanceForm.get('date')?.errors?.['invalidDate']) {
-                    Định dạng ngày không hợp lệ (dd/MM/yyyy).
+                  @if (attendanceForm.get('date')?.errors?.['invalidDate']) {
+                    Ngày không hợp lệ.
                   }
-                  @if (attendanceForm.get('date')?.errors?.['notWeekday']) {
-                    Chỉ được chấm công Thứ 2 - Thứ 6!
+                  @if (attendanceForm.get('date')?.errors?.['isSaturday']) {
+                    Thứ 7 không được chấm công! Chỉ chấm công Thứ 2 - Thứ 6.
+                  }
+                  @if (attendanceForm.get('date')?.errors?.['isSunday']) {
+                    Chủ nhật không được chấm công! Chỉ chấm công Thứ 2 - Thứ 6.
                   }
                   @if (attendanceForm.get('date')?.errors?.['duplicateDate']) {
                     Ngày này đã được chấm công rồi!
@@ -189,24 +234,20 @@ import { AttendanceRecord, AttendanceFormData } from './models/data.model';
 
             <div class="form-row">
               <div class="form-group">
-                <label>Giờ vào (HH:mm)</label>
+                <label>Giờ vào <span class="required">*</span></label>
                 <div class="input-with-icon">
                   <span class="material-icons-round">login</span>
                   <input
-                    type="text"
+                    type="time"
                     class="form-control"
                     [class.is-invalid]="isFieldInvalid('checkIn')"
-                    placeholder="08:00"
                     formControlName="checkIn"
                   />
                 </div>
                 @if (isFieldInvalid('checkIn')) {
                   <div class="form-error">
                     @if (attendanceForm.get('checkIn')?.errors?.['required']) {
-                      Vui lòng nhập giờ vào.
-                    }
-                    @if (attendanceForm.get('checkIn')?.errors?.['pattern']) {
-                      Sai định dạng (HH:mm).
+                      Vui lòng chọn giờ vào.
                     }
                     @if (attendanceForm.get('checkIn')?.errors?.['invalidTimeRange']) {
                       Giờ vào phải từ 06:00 - 10:00.
@@ -216,24 +257,20 @@ import { AttendanceRecord, AttendanceFormData } from './models/data.model';
               </div>
 
               <div class="form-group">
-                <label>Giờ ra (HH:mm)</label>
+                <label>Giờ ra</label>
                 <div class="input-with-icon">
                   <span class="material-icons-round">logout</span>
                   <input
-                    type="text"
+                    type="time"
                     class="form-control"
                     [class.is-invalid]="isFieldInvalid('checkOut')"
-                    placeholder="--:--"
                     formControlName="checkOut"
                   />
                 </div>
                 @if (isFieldInvalid('checkOut')) {
                   <div class="form-error">
-                    @if (attendanceForm.get('checkOut')?.errors?.['pattern']) {
-                      Sai định dạng (HH:mm).
-                    }
                     @if (attendanceForm.get('checkOut')?.errors?.['invalidTimeRange']) {
-                      Giờ ra phải từ 15:00 - 22:00.
+                      Giờ ra phải từ 17:30 - 24:00.
                     }
                   </div>
                 }
@@ -274,7 +311,7 @@ import { AttendanceRecord, AttendanceFormData } from './models/data.model';
       </div>
     }
 
-    <!-- Delete Confirm Modal -->
+    <!-- Delete Confirm Modal (Sửa lỗi font) -->
     @if (showDeleteConfirm()) {
       <div class="modal-overlay" (click)="closeDeleteConfirm()">
         <div class="modal-box delete-confirm" (click)="$event.stopPropagation()">
@@ -282,10 +319,12 @@ import { AttendanceRecord, AttendanceFormData } from './models/data.model';
             <span class="material-icons-round">warning</span>
           </div>
           <h3>Xác nhận xóa</h3>
-          <p>Bạn có chắc chắn muốn xóa bản ghi chấm công ngày <strong>{{ recordToDelete?.date }}</strong> không? Hành động này không thể hoàn tác.</p>
-          <div class="modal-footer" style="margin-top: 24px; justify-content: center;">
+          <p>Bạn có chắc chắn muốn xóa bản ghi chấm công ngày <strong>{{ recordToDelete?.date }}</strong> không?</p>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">Hành động này không thể hoàn tác.</p>
+          <div class="modal-footer">
             <button class="btn-secondary" (click)="closeDeleteConfirm()">Hủy bỏ</button>
             <button class="btn-danger" (click)="confirmDelete()" [disabled]="isLoading()">
+              <span class="material-icons-round" style="font-size: 1rem;">delete</span>
               Xóa bản ghi
             </button>
           </div>
@@ -344,17 +383,14 @@ export class HistoryComponent implements OnInit {
     this.attendanceForm = this.fb.group({
       date: ['', [
         Validators.required,
-        Validators.pattern(/^\d{2}\/\d{2}\/\d{4}$/),
         this.dateValidator.bind(this)
       ]],
       checkIn: ['08:00', [
         Validators.required,
-        Validators.pattern(/^\d{2}:\d{2}$/),
-        this.timeRangeValidator(360, 600) // 06:00 - 10:00
+        this.timeRangeValidator(CHECK_IN_MIN_IN_MINUTES, CHECK_IN_MAX_IN_MINUTES)
       ]],
       checkOut: ['', [
-        Validators.pattern(/^(\d{2}:\d{2}|)$/),
-        this.timeRangeValidator(900, 1320) // 15:00 - 22:00
+        this.checkOutTimeValidator.bind(this)
       ]],
       status: ['Đang làm việc', Validators.required]
     }, {
@@ -363,7 +399,7 @@ export class HistoryComponent implements OnInit {
 
     // Theo dõi sự thay đổi của giờ vào và giờ ra để tự động cập nhật trạng thái
     this.attendanceForm.valueChanges.subscribe(val => {
-      // Chỉ tính toán khi checkIn hợp lệ (checkOut có thể rỗng)
+      // Chỉ tính toán khi checkIn hợp lệ
       if (this.attendanceForm.get('checkIn')?.valid && !this.attendanceForm.errors?.['checkOutBeforeCheckIn']) {
         const checkIn = val.checkIn;
         const checkOut = val.checkOut;
@@ -373,13 +409,11 @@ export class HistoryComponent implements OnInit {
             this.attendanceForm.get('status')?.setValue('Đang làm việc', { emitEvent: false });
           }
         } else if (this.attendanceForm.get('checkOut')?.valid) {
-          const inParts = checkIn.split(':');
-          const outParts = checkOut.split(':');
-          const inMinutes = parseInt(inParts[0], 10) * 60 + parseInt(inParts[1], 10);
-          const outMinutes = parseInt(outParts[0], 10) * 60 + parseInt(outParts[1], 10);
-          
-          // Đi trễ nếu vào sau 08:00 (480) HOẶC ra trước 17:30 (1050)
-          const isLate = inMinutes > 480 || outMinutes < 1050;
+          const inMinutes = this.parseTimeToMinutes(checkIn);
+          const outMinutes = this.parseTimeToMinutes(checkOut);
+
+          // Đi trễ nếu vào sau giờ bắt đầu HOẶC ra trước giờ kết thúc
+          const isLate = inMinutes > WORK_START_IN_MINUTES || outMinutes < WORK_END_IN_MINUTES;
           const expectedStatus = isLate ? 'Đi trễ' : 'Đúng giờ';
 
           if (val.status !== expectedStatus) {
@@ -390,34 +424,61 @@ export class HistoryComponent implements OnInit {
     });
   }
 
+  // ===== Helper: Chuyển chuỗi "HH:mm" thành số phút =====
+  parseTimeToMinutes(timeStr: string): number {
+    if (!timeStr) return 0;
+    const parts = timeStr.split(':');
+    if (parts.length !== 2) return 0;
+    return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+  }
+
+  // ===== Helper: Chuyển date input (yyyy-MM-dd) sang dd/MM/yyyy =====
+  formatDateForDisplay(dateInputValue: string): string {
+    if (!dateInputValue) return '';
+    const parts = dateInputValue.split('-');
+    if (parts.length !== 3) return dateInputValue;
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+
+  // ===== Helper: Chuyển dd/MM/yyyy sang yyyy-MM-dd (cho input type="date") =====
+  formatDateForInput(displayDate: string): string {
+    if (!displayDate) return '';
+    const parts = displayDate.split('/');
+    if (parts.length !== 3) return displayDate;
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+
   // ===== Custom Validators =====
 
-  // Validator: kiểm tra ngày hợp lệ + ngày trong tuần (T2-T6) + không trùng
+  /**
+   * Validator: Kiểm tra ngày hợp lệ + không phải T7/CN + không trùng
+   * Dùng 'isSaturday' và 'isSunday' thay cho 'notWeekday' (theo feedback mentor)
+   * → Dễ đọc, dễ hiểu ngay lúc nhìn vào
+   */
   dateValidator(control: AbstractControl): ValidationErrors | null {
     const value = control.value;
-    if (!value || !/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return null; 
+    if (!value) return null;
 
-    const parts = value.split('/');
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const year = parseInt(parts[2], 10);
-    const date = new Date(year, month, day);
-
-    // Kiểm tra ngày hợp lệ
-    if (date.getDate() !== day || date.getMonth() !== month || date.getFullYear() !== year) {
+    // Input type="date" trả về format yyyy-MM-dd
+    const date = new Date(value);
+    if (isNaN(date.getTime())) {
       return { invalidDate: true };
     }
 
-    // Kiểm tra Thứ 2 - Thứ 6
+    // Kiểm tra Thứ 7 và Chủ nhật — dùng tên ngày rõ ràng thay vì số
     const dayOfWeek = date.getDay();
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      return { notWeekday: true };
+    if (dayOfWeek === SATURDAY) {
+      return { isSaturday: true };
+    }
+    if (dayOfWeek === SUNDAY) {
+      return { isSunday: true };
     }
 
     // Kiểm tra trùng ngày (1 ngày chỉ 1 lần chấm công)
+    const displayDate = this.formatDateForDisplay(value);
     const isDuplicate = this.records().some(r => {
-      if (this.isEditing() && r.id === this.editingId) return false; 
-      return r.date === value;
+      if (this.isEditing() && r.id === this.editingId) return false;
+      return r.date === displayDate;
     });
     if (isDuplicate) {
       return { duplicateDate: true };
@@ -426,12 +487,16 @@ export class HistoryComponent implements OnInit {
     return null;
   }
 
-  // Validator: kiểm tra giờ nằm trong khoảng min-max (tính bằng phút)
+  /**
+   * Validator: Kiểm tra giờ nằm trong khoảng min-max (tính bằng phút)
+   * Dùng constants có tên rõ ràng thay vì magic numbers
+   */
   timeRangeValidator(minMinutes: number, maxMinutes: number) {
     return (control: AbstractControl): ValidationErrors | null => {
       const value = control.value;
-      if (!value || !/^\d{2}:\d{2}$/.test(value)) return null;
+      if (!value) return null;
 
+      const totalMinutes = this.parseTimeToMinutes(value);
       const parts = value.split(':');
       const hours = parseInt(parts[0], 10);
       const minutes = parseInt(parts[1], 10);
@@ -440,7 +505,6 @@ export class HistoryComponent implements OnInit {
         return { invalidTimeRange: true };
       }
 
-      const totalMinutes = hours * 60 + minutes;
       if (totalMinutes < minMinutes || totalMinutes > maxMinutes) {
         return { invalidTimeRange: true };
       }
@@ -449,13 +513,31 @@ export class HistoryComponent implements OnInit {
     };
   }
 
+  /**
+   * Validator cho giờ ra: phải từ 17:30 - 24:00
+   * Nếu nhập giờ ra trước 17:30 → báo lỗi "Giờ ra phải từ 17:30 - 24:00"
+   */
+  checkOutTimeValidator(control: AbstractControl): ValidationErrors | null {
+    const value = control.value;
+    if (!value || value.trim() === '') return null;
+
+    const totalMinutes = value.split(':').reduce(
+      (acc: number, part: string, idx: number) => acc + parseInt(part, 10) * (idx === 0 ? 60 : 1), 0
+    );
+
+    if (totalMinutes < CHECK_OUT_MIN_IN_MINUTES || totalMinutes > CHECK_OUT_MAX_IN_MINUTES) {
+      return { invalidTimeRange: true };
+    }
+
+    return null;
+  }
+
   // Cross-field Validator: giờ ra phải sau giờ vào
   checkOutAfterCheckInValidator(group: AbstractControl): ValidationErrors | null {
     const checkIn = group.get('checkIn')?.value;
     const checkOut = group.get('checkOut')?.value;
 
     if (!checkIn || !checkOut) return null;
-    if (!/^\d{2}:\d{2}$/.test(checkIn) || !/^\d{2}:\d{2}$/.test(checkOut)) return null;
 
     const inParts = checkIn.split(':');
     const outParts = checkOut.split(':');
@@ -517,7 +599,7 @@ export class HistoryComponent implements OnInit {
     this.isEditing.set(true);
     this.editingId = record.id;
     this.attendanceForm.reset({
-      date: record.date,
+      date: this.formatDateForInput(record.date),
       checkIn: record.checkIn,
       checkOut: record.checkOut,
       status: record.status
@@ -532,7 +614,16 @@ export class HistoryComponent implements OnInit {
       return;
     }
 
-    const formData = this.attendanceForm.value as AttendanceFormData;
+    const formValue = this.attendanceForm.value;
+
+    // Chuyển ngày từ yyyy-MM-dd (input date) sang dd/MM/yyyy (hiển thị)
+    const formData: AttendanceFormData = {
+      date: this.formatDateForDisplay(formValue.date),
+      checkIn: formValue.checkIn,
+      checkOut: formValue.checkOut || '',
+      status: formValue.status
+    };
+
     this.isLoading.set(true);
 
     if (this.isEditing() && this.editingId) {
