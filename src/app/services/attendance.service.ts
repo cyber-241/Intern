@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ApiResponse, AttendanceRecord, AttendanceFormData, AttendanceApiResponse, MonthlyDeductionSummary } from '../models/data.model';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -9,17 +10,23 @@ import { ApiResponse, AttendanceRecord, AttendanceFormData, AttendanceApiRespons
 export class AttendanceService {
   private apiUrl = 'http://localhost:5188/api/attendance';
 
-  // Mặc định employeeId = 2 (Nguyễn Bảo Hân) — sẽ thay đổi khi có hệ thống login thật
-  private defaultEmployeeId = 2;
-
-  constructor(private http: HttpClient) { }
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService
+  ) { }
 
   /**
-   * Lấy tất cả chấm công (dùng employeeId mặc định)
-   * Giữ lại để backward compatible với dashboard + history component
+   * Lấy employeeId từ user đang đăng nhập (Tuần 6: không còn hardcode)
+   */
+  private getEmployeeId(): number {
+    return this.authService.currentUser()?.employeeId ?? 0;
+  }
+
+  /**
+   * Lấy tất cả chấm công của user đang đăng nhập
    */
   getAll(): Observable<AttendanceApiResponse> {
-    const params = new HttpParams().set('employeeId', this.defaultEmployeeId.toString());
+    const params = new HttpParams().set('employeeId', this.getEmployeeId().toString());
     return this.http.get<AttendanceApiResponse>(this.apiUrl, { params });
   }
 
@@ -35,9 +42,8 @@ export class AttendanceService {
    * Thêm bản ghi chấm công mới
    */
   create(data: AttendanceFormData): Observable<AttendanceApiResponse> {
-    // Chuyển đổi format cũ sang format mới nếu cần
     const requestData = {
-      employeeId: data.employeeId || this.defaultEmployeeId,
+      employeeId: data.employeeId || this.getEmployeeId(),
       workDate: data.workDate || data.date || '',
       checkInTime: data.checkInTime || data.checkIn || '',
       checkOutTime: data.checkOutTime || data.checkOut || null,
@@ -51,12 +57,11 @@ export class AttendanceService {
   }
 
   /**
-   * Cập nhật bản ghi chấm công (update qua API)
-   * Hiện tại API chưa có PUT endpoint, nhưng giữ method để component không lỗi
+   * Cập nhật bản ghi chấm công
    */
   update(id: number, data: AttendanceFormData): Observable<AttendanceApiResponse> {
     const requestData = {
-      employeeId: data.employeeId || this.defaultEmployeeId,
+      employeeId: data.employeeId || this.getEmployeeId(),
       workDate: data.workDate || data.date || '',
       checkInTime: data.checkInTime || data.checkIn || '',
       checkOutTime: data.checkOutTime || data.checkOut || null,

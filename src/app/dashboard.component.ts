@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { AttendanceService } from './services/attendance.service';
+import { NotificationService } from './services/notification.service';
 import { AttendanceRecord } from './models/data.model';
 
 /**
@@ -161,11 +162,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const total = this.totalDays();
     return total > 0 ? Math.round((this.onTimeDays() / total) * 100) : 0;
   });
-  recentRecords = computed(() => this.allRecords().slice(-5).reverse());
+  recentRecords = computed(() => this.allRecords().slice(0, 5));
 
   private timerInterval: any;
 
-  constructor(private attendanceService: AttendanceService) { }
+  constructor(
+    private attendanceService: AttendanceService,
+    private notificationService: NotificationService
+  ) { }
 
   ngOnInit(): void {
     this.updateTime();
@@ -225,20 +229,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     // Kiểm tra Thứ 7 và Chủ nhật — dùng constants rõ ràng
     if (dayOfWeek === SUNDAY || dayOfWeek === SATURDAY) {
-      alert('⚠️ Hôm nay là cuối tuần! Chỉ được chấm công từ Thứ 2 đến Thứ 6.');
+      this.notificationService.warning('Hôm nay là cuối tuần! Chỉ được chấm công từ Thứ 2 đến Thứ 6.');
       return;
     }
 
     const time = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-    const date = now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    // Format ngày dd/MM/yyyy có zero-padding, khớp chính xác với SP backend trả về
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yyyy = now.getFullYear();
+    const dateForCompare = `${dd}/${mm}/${yyyy}`;  // So sánh với r.date từ SP
+    const dateForApi = `${yyyy}-${mm}-${dd}`;       // Gửi cho SQL Server (ISO format)
 
     // Tìm xem hôm nay đã có bản ghi nào chưa
-    const todayRecord = this.allRecords().find(r => r.date === date);
+    const todayRecord = this.allRecords().find(r => r.date === dateForCompare);
 
     if (todayRecord) {
       // Đã chấm vào rồi, giờ kiểm tra xem đã chấm ra chưa
       if (todayRecord.checkOut && todayRecord.checkOut !== '' && todayRecord.checkOut !== '--:--') {
-        alert('⚠️ Bạn đã chấm công ra ngày hôm nay rồi!');
+        this.notificationService.warning('Bạn đã chấm công ra ngày hôm nay rồi!');
         return;
       }
 
@@ -251,6 +260,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       const updateData = {
         ...todayRecord,
+        workDate: dateForApi,
         checkOut: time,
         status: isLate ? 'Đi trễ' : 'Đúng giờ'
       };
@@ -258,19 +268,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.attendanceService.update(todayRecord.id, updateData).subscribe({
         next: (response) => {
           if (response.success) {
-            alert(`✅ Chấm công RA thành công lúc ${time}! Trạng thái: ${updateData.status}`);
+            this.notificationService.success(`Chấm công RA thành công lúc ${time}! Trạng thái: ${updateData.status}`);
             this.loadStats();
           }
         },
         error: () => {
-          alert('❌ Chấm công ra thất bại! Không thể kết nối đến máy chủ.');
+          // Lỗi sẽ được xử lý bởi errorInterceptor
         }
       });
 
     } else {
       // Thực hiện CHẤM CÔNG VÀO
       const newRecord = {
-        date: date,
+        workDate: dateForApi,
+        date: dateForCompare,
         checkIn: time,
         checkOut: '',
         status: 'Đang làm việc'
@@ -279,12 +290,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.attendanceService.create(newRecord).subscribe({
         next: (response) => {
           if (response.success) {
-            alert(`✅ Chấm công VÀO thành công lúc ${time}!\nĐừng quên chấm công ra sau 17:30 nhé.`);
+            this.notificationService.success(`Chấm công VÀO thành công lúc ${time}! Đừng quên chấm công ra sau 17:30 nhé.`);
             this.loadStats();
           }
         },
         error: () => {
-          alert('❌ Chấm công thất bại! Không thể kết nối đến máy chủ.');
+          // Lỗi sẽ được xử lý bởi errorInterceptor
         }
       });
     }

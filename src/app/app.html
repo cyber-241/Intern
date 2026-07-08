@@ -1,4 +1,25 @@
+<!-- Toast Notifications — Tuần 6: Error Handling -->
+@if (notifications().length > 0) {
+  <div class="toast-container">
+    @for (toast of notifications(); track toast.id) {
+      <div class="toast toast-{{ toast.type }}" (click)="dismissToast(toast.id)">
+        <span class="material-icons-round toast-icon">
+          @switch (toast.type) {
+            @case ('success') { check_circle }
+            @case ('error') { error }
+            @case ('warning') { warning }
+            @default { info }
+          }
+        </span>
+        <span class="toast-message">{{ toast.message }}</span>
+        <span class="material-icons-round toast-close">close</span>
+      </div>
+    }
+  </div>
+}
+
 <div class="dashboard-layout">
+
   <!-- Main Content -->
   <main class="main-content">
     <header class="top-header">
@@ -36,20 +57,20 @@
           <span class="notification-dot"></span>
         </button>
         <div class="header-user" (click)="toggleUserMenu()">
-          <div class="header-avatar">NBH</div>
+          <div class="header-avatar">{{ (currentUser()?.fullName ?? 'U').substring(0,2).toUpperCase() }}</div>
           <div class="header-user-info">
-            <span class="header-user-name">{{ employeeData.data.fullName }}</span>
-            <span class="header-user-role">{{ employeeData.data.department }}</span>
+            <span class="header-user-name">{{ currentUser()?.fullName ?? 'Người dùng' }}</span>
+            <span class="header-user-role">{{ currentUser()?.departmentName ?? '' }}</span>
           </div>
           <span class="material-icons-round header-user-arrow">expand_more</span>
         </div>
         @if (userMenuOpen) {
           <div class="user-dropdown">
             <div class="user-dropdown-header">
-              <div class="header-avatar" style="width: 40px; height: 40px; font-size: 0.85rem;">NBH</div>
+              <div class="header-avatar" style="width: 40px; height: 40px; font-size: 0.85rem;">{{ (currentUser()?.fullName ?? 'U').substring(0,2).toUpperCase() }}</div>
               <div>
-                <div style="font-weight: 600; font-size: 0.88rem; color: var(--text-primary);">{{ employeeData.data.fullName }}</div>
-                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ employeeData.data.id }}</div>
+                <div style="font-weight: 600; font-size: 0.88rem; color: var(--text-primary);">{{ currentUser()?.fullName ?? 'Người dùng' }}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ currentUser()?.employeeCode ?? '' }}</div>
               </div>
             </div>
             <div class="user-dropdown-divider"></div>

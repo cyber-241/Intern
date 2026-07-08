@@ -134,11 +134,11 @@ const SATURDAY = 6;
                   <td class="td-index">{{ i + 1 }}</td>
                   <td>
                     <div style="font-weight: 500; color: var(--text-primary);">
-                      {{ record.fullName || 'Nguyễn Bảo Hân' }}
+                      {{ record.fullName || 'Chưa cập nhật' }}
                     </div>
                   </td>
-                  <td>{{ record.departmentName || 'Phòng Kỹ thuật' }}</td>
-                  <td>{{ record.positionName || 'Nhân viên' }}</td>
+                  <td>{{ record.departmentName || 'Chưa cập nhật' }}</td>
+                  <td>{{ record.positionName || 'Chưa cập nhật' }}</td>
                   <td class="td-date">{{ record.date }}</td>
                   <td>
                     <div class="td-time">

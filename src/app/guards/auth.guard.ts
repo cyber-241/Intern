@@ -1,20 +1,15 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 
 /**
- * Auth Guard (Week 5 - Angular Guard)
- * Kiểm tra user đã đăng nhập chưa trước khi cho truy cập route
- * Nếu chưa login → redirect về /login
+ * Auth Guard — Tuần 6: Dùng AuthService thay vì check localStorage trực tiếp
  */
 export const authGuard: CanActivateFn = (route, state) => {
+  const authService = inject(AuthService);
   const router = inject(Router);
 
-  // Kiểm tra token trong localStorage
-  const token = localStorage.getItem('auth_token');
-  const isLoggedIn = !!token;
-
-  if (!isLoggedIn) {
-    // Chưa đăng nhập → redirect về trang login
+  if (!authService.isLoggedIn()) {
     router.navigate(['/login'], {
       queryParams: { returnUrl: state.url }
     });
