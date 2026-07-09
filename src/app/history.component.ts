@@ -1,8 +1,8 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
-import { AttendanceService } from './services/attendance.service';
-import { AttendanceRecord, AttendanceFormData } from './models/data.model';
+import { AttendanceStore } from './stores/attendance.store';
+import { AttendanceFormData } from './models/data.model';
 
 /**
  * ===== CONSTANTS - Dễ đọc, dễ bảo trì (theo feedback mentor) =====
@@ -17,26 +17,48 @@ const WORK_END_MINUTE = 30;
 const WORK_START_IN_MINUTES = WORK_START_HOUR * 60 + WORK_START_MINUTE;   // = 480
 const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;         // = 1050
 
-// Khoảng giờ hợp lệ cho Check-In (06:00 - 10:00)
+// Khoảng giờ hợp lệ cho Check-In (06:00 - 14:00)
+// Mở rộng tới 14:00 để cho phép ghi nhận giờ đi trễ thực tế
+// Trạng thái "Đi trễ" sẽ được tự động tính dựa trên WORK_START (08:00)
 const CHECK_IN_MIN_HOUR = 6;
 const CHECK_IN_MIN_MINUTE = 0;
-const CHECK_IN_MAX_HOUR = 10;
+const CHECK_IN_MAX_HOUR = 14;
 const CHECK_IN_MAX_MINUTE = 0;
 const CHECK_IN_MIN_IN_MINUTES = CHECK_IN_MIN_HOUR * 60 + CHECK_IN_MIN_MINUTE;   // = 360
-const CHECK_IN_MAX_IN_MINUTES = CHECK_IN_MAX_HOUR * 60 + CHECK_IN_MAX_MINUTE;   // = 600
+const CHECK_IN_MAX_IN_MINUTES = CHECK_IN_MAX_HOUR * 60 + CHECK_IN_MAX_MINUTE;   // = 840
 
-// Khoảng giờ hợp lệ cho Check-Out (17:30 - 24:00) — theo yêu cầu mới
-const CHECK_OUT_MIN_HOUR = WORK_END_HOUR;
-const CHECK_OUT_MIN_MINUTE = WORK_END_MINUTE;
+// Khoảng giờ hợp lệ cho Check-Out (12:00 - 24:00)
+// Mở rộng từ 12:00 để cho phép ghi nhận giờ về sớm thực tế
+// Trạng thái "Đi trễ" sẽ được tự động tính dựa trên WORK_END (17:30)
+const CHECK_OUT_MIN_HOUR = 12;
+const CHECK_OUT_MIN_MINUTE = 0;
 const CHECK_OUT_MAX_HOUR = 24;
 const CHECK_OUT_MAX_MINUTE = 0;
-const CHECK_OUT_MIN_IN_MINUTES = CHECK_OUT_MIN_HOUR * 60 + CHECK_OUT_MIN_MINUTE;  // = 1050
+const CHECK_OUT_MIN_IN_MINUTES = CHECK_OUT_MIN_HOUR * 60 + CHECK_OUT_MIN_MINUTE;  // = 720
 const CHECK_OUT_MAX_IN_MINUTES = CHECK_OUT_MAX_HOUR * 60 + CHECK_OUT_MAX_MINUTE;  // = 1440
 
 // Ngày trong tuần — dễ đọc hơn so với dùng 0, 6 trực tiếp (theo feedback mentor)
 const SUNDAY = 0;
 const SATURDAY = 6;
 
+/**
+ * History Component — Tuần 7: Refactor dùng AttendanceStore (Signals)
+ *
+ * TRƯỚC (Tuần 6):
+ *   - records = signal<AttendanceRecord[]>([])            → tự quản lý
+ *   - searchQuery = signal('')                             → tự quản lý
+ *   - filterStatus = signal('all')                         → tự quản lý
+ *   - filteredRecords = computed(...)                       → tự tính toán
+ *   - loadData() → service.getAll().subscribe(...)          → tự gọi API
+ *
+ * SAU (Tuần 7):
+ *   - store.records()                  → đọc từ store
+ *   - store.searchQuery()              → đọc từ store
+ *   - store.filterStatus()            → đọc từ store
+ *   - store.filteredRecords()         → computed từ store
+ *   - store.loadRecords()             → store gọi API
+ *   - store.addRecord/updateRecord/deleteRecord → store xử lý CRUD
+ */
 @Component({
   selector: 'app-history',
   standalone: true,
@@ -44,13 +66,13 @@ const SATURDAY = 6;
   styleUrls: ['./app.css'],
   template: `
     <!-- Toast Notification -->
-    @if (toast()) {
+    @if (toast) {
       <div class="toast-container">
-        <div class="toast" [class.error]="toast()!.isError">
+        <div class="toast" [class.error]="toast.isError">
           <div class="toast-icon">
-            <span class="material-icons-round">{{ toast()!.isError ? 'error' : 'check_circle' }}</span>
+            <span class="material-icons-round">{{ toast.isError ? 'error' : 'check_circle' }}</span>
           </div>
-          <span class="toast-message">{{ toast()!.message }}</span>
+          <span class="toast-message">{{ toast.message }}</span>
         </div>
       </div>
     }
@@ -68,7 +90,7 @@ const SATURDAY = 6;
             Giờ làm: 08:00 - 17:30 | T2 - T6
           </span>
           <span style="font-size: 0.82rem; color: var(--text-muted);">
-            Tổng: {{ filteredRecords().length }} bản ghi
+            Tổng: {{ store.filteredRecords().length }} bản ghi
           </span>
         </div>
       </div>
@@ -87,11 +109,11 @@ const SATURDAY = 6;
             <input
               type="text"
               placeholder="Tìm theo ngày..."
-              [ngModel]="searchQuery()"
-              (ngModelChange)="searchQuery.set($event)"
+              [ngModel]="store.searchQuery()"
+              (ngModelChange)="store.setSearchQuery($event)"
             />
           </div>
-          <select class="filter-select" [ngModel]="filterStatus()" (ngModelChange)="filterStatus.set($event)">
+          <select class="filter-select" [ngModel]="store.filterStatus()" (ngModelChange)="store.setFilterStatus($event)">
             <option value="all">Tất cả trạng thái</option>
             <option value="Đúng giờ">Đúng giờ</option>
             <option value="Đi trễ">Đi trễ</option>
@@ -100,13 +122,13 @@ const SATURDAY = 6;
         </div>
       </div>
 
-      <!-- Data Table -->
-      @if (isLoading()) {
+      <!-- Data Table — Dùng store.filteredRecords() -->
+      @if (store.isLoading()) {
         <div class="loading-container">
           <div class="loading-spinner"></div>
           <p>Đang tải dữ liệu hệ thống...</p>
         </div>
-      } @else if (filteredRecords().length === 0) {
+      } @else if (store.filteredRecords().length === 0) {
         <div class="empty-state">
           <span class="material-icons-round">inbox</span>
           <p>Không tìm thấy bản ghi nào</p>
@@ -129,7 +151,7 @@ const SATURDAY = 6;
               </tr>
             </thead>
             <tbody>
-              @for (record of filteredRecords(); track record.id; let i = $index) {
+              @for (record of store.filteredRecords(); track record.id; let i = $index) {
                 <tr>
                   <td class="td-index">{{ i + 1 }}</td>
                   <td>
@@ -179,13 +201,13 @@ const SATURDAY = 6;
     </div>
 
     <!-- Add/Edit Modal (Reactive Form) -->
-    @if (showFormModal()) {
+    @if (showFormModal) {
       <div class="modal-overlay" (click)="closeFormModal()">
         <div class="modal-box" (click)="$event.stopPropagation()">
           <div class="modal-header">
             <h3>
-              <span class="material-icons-round">{{ isEditing() ? 'edit_note' : 'add_circle' }}</span>
-              {{ isEditing() ? 'Chỉnh sửa bản ghi' : 'Thêm bản ghi mới' }}
+              <span class="material-icons-round">{{ isEditing ? 'edit_note' : 'add_circle' }}</span>
+              {{ isEditing ? 'Chỉnh sửa bản ghi' : 'Thêm bản ghi mới' }}
             </h3>
             <button class="modal-close" (click)="closeFormModal()">
               <span class="material-icons-round">close</span>
@@ -250,7 +272,7 @@ const SATURDAY = 6;
                       Vui lòng chọn giờ vào.
                     }
                     @if (attendanceForm.get('checkIn')?.errors?.['invalidTimeRange']) {
-                      Giờ vào phải từ 06:00 - 10:00.
+                      Giờ vào phải từ 06:00 - 14:00.
                     }
                   </div>
                 }
@@ -270,7 +292,7 @@ const SATURDAY = 6;
                 @if (isFieldInvalid('checkOut')) {
                   <div class="form-error">
                     @if (attendanceForm.get('checkOut')?.errors?.['invalidTimeRange']) {
-                      Giờ ra phải từ 17:30 - 24:00.
+                      Giờ ra phải từ 12:00 - 24:00.
                     }
                   </div>
                 }
@@ -301,7 +323,7 @@ const SATURDAY = 6;
 
             <div class="modal-footer">
               <button type="button" class="btn-secondary" (click)="closeFormModal()">Hủy</button>
-              <button type="submit" class="btn-primary" [disabled]="attendanceForm.invalid || isLoading()">
+              <button type="submit" class="btn-primary" [disabled]="attendanceForm.invalid || store.isLoading()">
                 <span class="material-icons-round">save</span>
                 Lưu lại
               </button>
@@ -311,8 +333,8 @@ const SATURDAY = 6;
       </div>
     }
 
-    <!-- Delete Confirm Modal (Sửa lỗi font) -->
-    @if (showDeleteConfirm()) {
+    <!-- Delete Confirm Modal -->
+    @if (showDeleteConfirm) {
       <div class="modal-overlay" (click)="closeDeleteConfirm()">
         <div class="modal-box delete-confirm" (click)="$event.stopPropagation()">
           <div class="delete-icon">
@@ -323,7 +345,7 @@ const SATURDAY = 6;
           <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">Hành động này không thể hoàn tác.</p>
           <div class="modal-footer">
             <button class="btn-secondary" (click)="closeDeleteConfirm()">Hủy bỏ</button>
-            <button class="btn-danger" (click)="confirmDelete()" [disabled]="isLoading()">
+            <button class="btn-danger" (click)="confirmDelete()" [disabled]="store.isLoading()">
               <span class="material-icons-round" style="font-size: 1rem;">delete</span>
               Xóa bản ghi
             </button>
@@ -334,48 +356,30 @@ const SATURDAY = 6;
   `
 })
 export class HistoryComponent implements OnInit {
-  // State quản lý bằng Angular Signals (Week 4)
-  records = signal<AttendanceRecord[]>([]);
-  searchQuery = signal('');
-  filterStatus = signal('all');
+  /**
+   * Tuần 7: UI state vẫn ở component (không cần share giữa các component)
+   * Business state (records, filter) → chuyển sang store
+   */
+  showFormModal = false;
+  showDeleteConfirm = false;
+  toast: { message: string; isError: boolean } | null = null;
 
-  // Computed state: Tự động tính toán lại khi records, searchQuery hoặc filterStatus thay đổi
-  filteredRecords = computed(() => {
-    let result = [...this.records()];
-
-    if (this.searchQuery().trim()) {
-      const query = this.searchQuery().trim().toLowerCase();
-      result = result.filter(r => r.date.toLowerCase().includes(query));
-    }
-
-    if (this.filterStatus() !== 'all') {
-      result = result.filter(r => r.status === this.filterStatus());
-    }
-
-    return result;
-  });
-
-  // State UI
-  showFormModal = signal(false);
-  showDeleteConfirm = signal(false);
-  isLoading = signal(false);
-  toast = signal<{ message: string; isError: boolean } | null>(null);
-
-  isEditing = signal(false);
+  isEditing = false;
   editingId: number | null = null;
-  recordToDelete: AttendanceRecord | null = null;
+  recordToDelete: any = null;
 
   // Form
   attendanceForm!: FormGroup;
 
   constructor(
-    private attendanceService: AttendanceService,
+    public store: AttendanceStore,
     private fb: FormBuilder
   ) { }
 
   ngOnInit(): void {
     this.initForm();
-    this.loadData();
+    // Tuần 7: Gọi store.loadRecords() thay vì tự gọi service
+    this.store.loadRecords();
   }
 
   // ===== Khởi tạo Reactive Form =====
@@ -452,8 +456,7 @@ export class HistoryComponent implements OnInit {
 
   /**
    * Validator: Kiểm tra ngày hợp lệ + không phải T7/CN + không trùng
-   * Dùng 'isSaturday' và 'isSunday' thay cho 'notWeekday' (theo feedback mentor)
-   * → Dễ đọc, dễ hiểu ngay lúc nhìn vào
+   * Tuần 7: Dùng store.records() thay vì this.records()
    */
   dateValidator(control: AbstractControl): ValidationErrors | null {
     const value = control.value;
@@ -475,9 +478,10 @@ export class HistoryComponent implements OnInit {
     }
 
     // Kiểm tra trùng ngày (1 ngày chỉ 1 lần chấm công)
+    // Tuần 7: Đọc records từ store
     const displayDate = this.formatDateForDisplay(value);
-    const isDuplicate = this.records().some(r => {
-      if (this.isEditing() && r.id === this.editingId) return false;
+    const isDuplicate = this.store.records().some(r => {
+      if (this.isEditing && r.id === this.editingId) return false;
       return r.date === displayDate;
     });
     if (isDuplicate) {
@@ -489,7 +493,6 @@ export class HistoryComponent implements OnInit {
 
   /**
    * Validator: Kiểm tra giờ nằm trong khoảng min-max (tính bằng phút)
-   * Dùng constants có tên rõ ràng thay vì magic numbers
    */
   timeRangeValidator(minMinutes: number, maxMinutes: number) {
     return (control: AbstractControl): ValidationErrors | null => {
@@ -515,7 +518,6 @@ export class HistoryComponent implements OnInit {
 
   /**
    * Validator cho giờ ra: phải từ 17:30 - 24:00
-   * Nếu nhập giờ ra trước 17:30 → báo lỗi "Giờ ra phải từ 17:30 - 24:00"
    */
   checkOutTimeValidator(control: AbstractControl): ValidationErrors | null {
     const value = control.value;
@@ -558,32 +560,15 @@ export class HistoryComponent implements OnInit {
 
   // ===== Toast =====
   showToast(message: string, isError: boolean = false): void {
-    this.toast.set({ message, isError });
+    this.toast = { message, isError };
     setTimeout(() => {
-      this.toast.set(null);
+      this.toast = null;
     }, 3000);
-  }
-
-  // ===== Load Data =====
-  loadData(): void {
-    this.isLoading.set(true);
-    this.attendanceService.getAll().subscribe({
-      next: (response) => {
-        if (response.success) {
-          this.records.set(Array.isArray(response.data) ? response.data : []);
-        }
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.showToast('Lỗi kết nối đến máy chủ!', true);
-        this.isLoading.set(false);
-      }
-    });
   }
 
   // ===== Create =====
   openAddModal(): void {
-    this.isEditing.set(false);
+    this.isEditing = false;
     this.editingId = null;
     this.attendanceForm.reset({
       date: '',
@@ -591,12 +576,12 @@ export class HistoryComponent implements OnInit {
       checkOut: '',
       status: 'Đang làm việc'
     });
-    this.showFormModal.set(true);
+    this.showFormModal = true;
   }
 
   // ===== Update =====
-  openEditModal(record: AttendanceRecord): void {
-    this.isEditing.set(true);
+  openEditModal(record: any): void {
+    this.isEditing = true;
     this.editingId = record.id;
     this.attendanceForm.reset({
       date: this.formatDateForInput(record.date),
@@ -604,11 +589,11 @@ export class HistoryComponent implements OnInit {
       checkOut: record.checkOut,
       status: record.status
     });
-    this.showFormModal.set(true);
+    this.showFormModal = true;
   }
 
-  // ===== Save (Add/Update) =====
-  saveRecord(): void {
+  // ===== Save (Add/Update) — Tuần 7: Dùng store actions =====
+  async saveRecord(): Promise<void> {
     if (this.attendanceForm.invalid) {
       this.attendanceForm.markAllAsTouched();
       return;
@@ -624,71 +609,55 @@ export class HistoryComponent implements OnInit {
       status: formValue.status
     };
 
-    this.isLoading.set(true);
+    let success: boolean;
 
-    if (this.isEditing() && this.editingId) {
-      this.attendanceService.update(this.editingId, formData).subscribe({
-        next: (response) => {
-          if (response.success) {
-            this.showToast('Đã cập nhật bản ghi thành công!');
-            this.closeFormModal();
-            this.loadData();
-          }
-        },
-        error: () => {
-          this.showToast('Cập nhật thất bại!', true);
-          this.isLoading.set(false);
-        }
-      });
+    if (this.isEditing && this.editingId) {
+      // Tuần 7: store.updateRecord() thay vì service.update().subscribe()
+      success = await this.store.updateRecord(this.editingId, formData);
+      if (success) {
+        this.showToast('Đã cập nhật bản ghi thành công!');
+        this.closeFormModal();
+      } else {
+        this.showToast('Cập nhật thất bại!', true);
+      }
     } else {
-      this.attendanceService.create(formData).subscribe({
-        next: (response) => {
-          if (response.success) {
-            this.showToast('Đã thêm bản ghi thành công!');
-            this.closeFormModal();
-            this.loadData();
-          }
-        },
-        error: () => {
-          this.showToast('Thêm bản ghi thất bại!', true);
-          this.isLoading.set(false);
-        }
-      });
+      // Tuần 7: store.addRecord() thay vì service.create().subscribe()
+      success = await this.store.addRecord(formData);
+      if (success) {
+        this.showToast('Đã thêm bản ghi thành công!');
+        this.closeFormModal();
+      } else {
+        this.showToast('Thêm bản ghi thất bại!', true);
+      }
     }
   }
 
   closeFormModal(): void {
-    this.showFormModal.set(false);
+    this.showFormModal = false;
     this.attendanceForm.reset();
   }
 
   // ===== Delete =====
-  openDeleteConfirm(record: AttendanceRecord): void {
+  openDeleteConfirm(record: any): void {
     this.recordToDelete = record;
-    this.showDeleteConfirm.set(true);
+    this.showDeleteConfirm = true;
   }
 
   closeDeleteConfirm(): void {
-    this.showDeleteConfirm.set(false);
+    this.showDeleteConfirm = false;
     this.recordToDelete = null;
   }
 
-  confirmDelete(): void {
+  // Tuần 7: Dùng store.deleteRecord() thay vì service.delete().subscribe()
+  async confirmDelete(): Promise<void> {
     if (!this.recordToDelete) return;
 
-    this.isLoading.set(true);
-    this.attendanceService.delete(this.recordToDelete.id).subscribe({
-      next: (response) => {
-        if (response.success) {
-          this.showToast(response.message || 'Đã xóa thành công!');
-          this.closeDeleteConfirm();
-          this.loadData();
-        }
-      },
-      error: () => {
-        this.showToast('Xóa thất bại!', true);
-        this.isLoading.set(false);
-      }
-    });
+    const success = await this.store.deleteRecord(this.recordToDelete.id);
+    if (success) {
+      this.showToast('Đã xóa thành công!');
+      this.closeDeleteConfirm();
+    } else {
+      this.showToast('Xóa thất bại!', true);
+    }
   }
 }

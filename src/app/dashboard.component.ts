@@ -1,6 +1,7 @@
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
-import { AttendanceService } from './services/attendance.service';
+import { Component, OnInit, OnDestroy, computed } from '@angular/core';
+import { AttendanceStore } from './stores/attendance.store';
 import { NotificationService } from './services/notification.service';
+import { AuthService } from './services/auth.service';
 import { AttendanceRecord } from './models/data.model';
 
 /**
@@ -15,6 +16,19 @@ const WORK_END_MINUTE = 30;
 const WORK_START_IN_MINUTES = WORK_START_HOUR * 60 + WORK_START_MINUTE;
 const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
 
+/**
+ * Dashboard Component — Tuần 7: Refactor dùng AttendanceStore (Signals)
+ *
+ * TRƯỚC (Tuần 6):
+ *   - Component tự quản lý state: allRecords = signal<AttendanceRecord[]>([])
+ *   - Component tự gọi service.getAll().subscribe(...)
+ *   - Component tự tính toán computed signals
+ *
+ * SAU (Tuần 7):
+ *   - Inject AttendanceStore → đọc signals trực tiếp từ store
+ *   - Store quản lý state tập trung (single source of truth)
+ *   - Nhiều components cùng chia sẻ 1 store → state luôn đồng bộ
+ */
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -25,8 +39,8 @@ const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
       <div class="checkin-content">
         <div class="checkin-info">
           <h3>{{ greeting() }}</h3>
-          <div class="checkin-time">{{ currentTime() }}</div>
-          <div class="checkin-date">{{ currentDate() }}</div>
+          <div class="checkin-time">{{ currentTime }}</div>
+          <div class="checkin-date">{{ currentDate }}</div>
         </div>
         <button class="btn-checkin-large" (click)="quickCheckIn()">
           <span class="material-icons-round">login</span>
@@ -35,7 +49,7 @@ const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
       </div>
     </div>
 
-    <!-- Stats Grid -->
+    <!-- Stats Grid — Dùng computed signals từ AttendanceStore -->
     <div class="stats-grid">
       <div class="stat-card primary">
         <div class="stat-card-header">
@@ -44,7 +58,7 @@ const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
           </div>
           <span class="stat-label">Tổng cộng</span>
         </div>
-        <div class="stat-value">{{ totalDays() }}</div>
+        <div class="stat-value">{{ store.totalDays() }}</div>
         <div class="stat-desc">Ngày công đã ghi nhận</div>
       </div>
 
@@ -55,7 +69,7 @@ const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
           </div>
           <span class="stat-label">Đúng giờ</span>
         </div>
-        <div class="stat-value">{{ onTimeDays() }}</div>
+        <div class="stat-value">{{ store.onTimeDays() }}</div>
         <div class="stat-desc">Ngày đi đúng giờ</div>
       </div>
 
@@ -66,7 +80,7 @@ const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
           </div>
           <span class="stat-label">Đi trễ</span>
         </div>
-        <div class="stat-value">{{ lateDays() }}</div>
+        <div class="stat-value">{{ store.lateDays() }}</div>
         <div class="stat-desc">Ngày đi trễ</div>
       </div>
 
@@ -77,12 +91,12 @@ const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
           </div>
           <span class="stat-label">Tỷ lệ</span>
         </div>
-        <div class="stat-value">{{ onTimePercent() }}%</div>
+        <div class="stat-value">{{ store.onTimePercent() }}%</div>
         <div class="stat-desc">Tỷ lệ đúng giờ</div>
       </div>
     </div>
 
-    <!-- Recent Records -->
+    <!-- Recent Records — Dùng recentRecords từ store -->
     <div class="section-card">
       <div class="section-header">
         <div class="section-title">
@@ -91,12 +105,12 @@ const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
         </div>
       </div>
 
-      @if (isLoading()) {
+      @if (store.isLoading()) {
         <div class="loading-container">
           <div class="loading-spinner"></div>
           <p>Đang tải dữ liệu...</p>
         </div>
-      } @else if (recentRecords().length === 0) {
+      } @else if (store.recentRecords().length === 0) {
         <div class="empty-state">
           <span class="material-icons-round">event_busy</span>
           <p>Chưa có dữ liệu chấm công</p>
@@ -115,7 +129,7 @@ const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
               </tr>
             </thead>
             <tbody>
-              @for (record of recentRecords(); track record.id; let i = $index) {
+              @for (record of store.recentRecords(); track record.id; let i = $index) {
                 <tr>
                   <td class="td-index">{{ i + 1 }}</td>
                   <td class="td-date">{{ record.date }}</td>
@@ -149,32 +163,38 @@ const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
   `
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-  currentTime = signal('');
-  currentDate = signal('');
-  isLoading = signal(true);
-  allRecords = signal<AttendanceRecord[]>([]);
-
-  // Computed signals for derived state
-  totalDays = computed(() => this.allRecords().length);
-  onTimeDays = computed(() => this.allRecords().filter(r => r.status === 'Đúng giờ').length);
-  lateDays = computed(() => this.allRecords().filter(r => r.status === 'Đi trễ').length);
-  onTimePercent = computed(() => {
-    const total = this.totalDays();
-    return total > 0 ? Math.round((this.onTimeDays() / total) * 100) : 0;
-  });
-  recentRecords = computed(() => this.allRecords().slice(0, 5));
+  /**
+   * Tuần 7: Inject AttendanceStore thay vì AttendanceService
+   * Store quản lý state tập trung, component chỉ đọc signals
+   */
+  currentTime = '';
+  currentDate = '';
 
   private timerInterval: any;
 
+  /**
+   * Computed: Lời chào theo thời gian trong ngày
+   * Vẫn giữ ở component vì đây là UI logic, không phải business state
+   */
+  greeting = computed(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Xin chào, chào buổi sáng!';
+    if (hour < 18) return 'Xin chào, chào buổi chiều!';
+    return 'Xin chào, chào buổi tối!';
+  });
+
   constructor(
-    private attendanceService: AttendanceService,
-    private notificationService: NotificationService
+    public store: AttendanceStore,
+    private notificationService: NotificationService,
+    private authService: AuthService
   ) { }
 
   ngOnInit(): void {
     this.updateTime();
     this.timerInterval = setInterval(() => this.updateTime(), 1000);
-    this.loadStats();
+
+    // Tuần 7: Gọi store.loadRecords() thay vì tự gọi service
+    this.store.loadRecords();
   }
 
   ngOnDestroy(): void {
@@ -185,43 +205,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   updateTime(): void {
     const now = new Date();
-    this.currentTime.set(now.toLocaleTimeString('vi-VN', {
+    this.currentTime = now.toLocaleTimeString('vi-VN', {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit'
-    }));
+    });
 
     const days = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
     const dayName = days[now.getDay()];
-    this.currentDate.set(`${dayName}, ${now.toLocaleDateString('vi-VN', {
+    this.currentDate = `${dayName}, ${now.toLocaleDateString('vi-VN', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
-    })}`);
+    })}`;
   }
-
-  loadStats(): void {
-    this.isLoading.set(true);
-    this.attendanceService.getAll().subscribe({
-      next: (response) => {
-        if (response.success && Array.isArray(response.data)) {
-          this.allRecords.set(response.data as AttendanceRecord[]);
-        }
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.isLoading.set(false);
-      }
-    });
-  }
-
-  // Lời chào theo thời gian trong ngày
-  greeting = computed(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Xin chào, chào buổi sáng!';
-    if (hour < 18) return 'Xin chào, chào buổi chiều!';
-    return 'Xin chào, chào buổi tối!';
-  });
 
   quickCheckIn(): void {
     const now = new Date();
@@ -241,8 +238,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const dateForCompare = `${dd}/${mm}/${yyyy}`;  // So sánh với r.date từ SP
     const dateForApi = `${yyyy}-${mm}-${dd}`;       // Gửi cho SQL Server (ISO format)
 
-    // Tìm xem hôm nay đã có bản ghi nào chưa
-    const todayRecord = this.allRecords().find(r => r.date === dateForCompare);
+    // Tuần 7: Đọc records từ store thay vì local signal
+    const todayRecord = this.store.records().find(r => r.date === dateForCompare);
 
     if (todayRecord) {
       // Đã chấm vào rồi, giờ kiểm tra xem đã chấm ra chưa
@@ -265,15 +262,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
         status: isLate ? 'Đi trễ' : 'Đúng giờ'
       };
 
-      this.attendanceService.update(todayRecord.id, updateData).subscribe({
-        next: (response) => {
-          if (response.success) {
-            this.notificationService.success(`Chấm công RA thành công lúc ${time}! Trạng thái: ${updateData.status}`);
-            this.loadStats();
-          }
-        },
-        error: () => {
-          // Lỗi sẽ được xử lý bởi errorInterceptor
+      // Tuần 7: Dùng store.updateRecord() (trả về Promise) thay vì service.subscribe()
+      this.store.updateRecord(todayRecord.id, updateData).then(success => {
+        if (success) {
+          this.notificationService.success(`Chấm công RA thành công lúc ${time}! Trạng thái: ${updateData.status}`);
         }
       });
 
@@ -287,15 +279,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
         status: 'Đang làm việc'
       };
 
-      this.attendanceService.create(newRecord).subscribe({
-        next: (response) => {
-          if (response.success) {
-            this.notificationService.success(`Chấm công VÀO thành công lúc ${time}! Đừng quên chấm công ra sau 17:30 nhé.`);
-            this.loadStats();
-          }
-        },
-        error: () => {
-          // Lỗi sẽ được xử lý bởi errorInterceptor
+      // Tuần 7: Dùng store.addRecord() thay vì service.subscribe()
+      this.store.addRecord(newRecord).then(success => {
+        if (success) {
+          this.notificationService.success(`Chấm công VÀO thành công lúc ${time}! Đừng quên chấm công ra sau 17:30 nhé.`);
         }
       });
     }
