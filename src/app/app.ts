@@ -13,6 +13,9 @@ import { NotificationService, Notification } from './services/notification.servi
 export class App implements OnInit, OnDestroy {
   // Tuần 6: Lấy thông tin user từ AuthService (reactive signal)
   currentUser = computed(() => this.authService.currentUser());
+  
+  // Tuần 8: Expose isAdmin
+  isAdmin = computed(() => this.authService.isAdmin());
 
   currentTimeStr = signal<string>('');
   currentDateStr = signal<string>('');

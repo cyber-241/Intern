@@ -44,6 +44,17 @@
             <span class="material-icons-round">history</span>
             Lịch sử chấm công
           </a>
+          <!-- Tuần 8: Role-based UI (Chỉ Admin mới thấy) -->
+          @if (isAdmin()) {
+            <a routerLink="/employees" routerLinkActive="active">
+              <span class="material-icons-round">people</span>
+              Quản lý nhân viên
+            </a>
+            <a routerLink="/reports" routerLinkActive="active">
+              <span class="material-icons-round">analytics</span>
+              Báo cáo tổng hợp
+            </a>
+          }
         </nav>
       </div>
 

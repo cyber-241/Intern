@@ -1,6 +1,6 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { catchError, throwError } from 'rxjs';
+import { catchError, throwError, switchMap } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
 /**
@@ -25,7 +25,27 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Lỗi 401 sẽ được xử lý bởi errorInterceptor
+      // Tuần 8: Xử lý Refresh Token khi gặp lỗi 401
+      if (error.status === 401 && !req.url.includes('/auth/login') && !req.url.includes('/auth/refresh-token')) {
+        return authService.refreshTokenApi().pipe(
+          switchMap((res) => {
+            // Lấy token mới vừa lưu
+            const newToken = authService.getToken();
+            const newAuthReq = req.clone({
+              setHeaders: {
+                Authorization: `Bearer ${newToken}`
+              }
+            });
+            // Gửi lại request cũ với token mới
+            return next(newAuthReq);
+          }),
+          catchError((refreshErr) => {
+            // Nếu refresh cũng lỗi (hết hạn refresh token) -> Đăng xuất
+            authService.logout();
+            return throwError(() => refreshErr);
+          })
+        );
+      }
       return throwError(() => error);
     })
   );
