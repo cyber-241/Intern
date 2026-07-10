@@ -35,159 +35,170 @@ const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
   styleUrls: ['./app.css'],
   template: `
     @if (isAdmin()) {
-      <div class="section-card">
-        <div class="section-header">
-          <div class="section-title">
-            <span class="material-icons-round">admin_panel_settings</span>
-            Bảng điều khiển Quản trị viên
-          </div>
+      <!-- GIAO DIỆN DÀNH CHO ADMIN -->
+      <div class="admin-dashboard-container">
+        <div class="welcome-banner" style="background: linear-gradient(135deg, var(--primary), #5c4dff); color: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem;">
+          <h2>Bảng Điều Khiển Dành Cho Ban Quản Trị</h2>
+          <p>Xin chào {{ authService.currentUser()?.fullName }}, chúc bạn một ngày làm việc hiệu quả!</p>
         </div>
+
         <div class="stats-grid">
           <div class="stat-card primary">
-            <div class="stat-card-header"><span class="stat-label">Tổng nhân sự</span></div>
-            <div class="stat-value">Đang cập nhật...</div>
+            <div class="stat-card-header">
+              <div class="stat-icon primary"><span class="material-icons-round">people</span></div>
+              <span class="stat-label">Tổng Nhân Sự</span>
+            </div>
+            <div class="stat-value">156</div>
+            <div class="stat-desc">Đang làm việc tại công ty</div>
           </div>
+
           <div class="stat-card success">
-            <div class="stat-card-header"><span class="stat-label">Hôm nay đúng giờ</span></div>
-            <div class="stat-value">Đang cập nhật...</div>
+            <div class="stat-card-header">
+              <div class="stat-icon success"><span class="material-icons-round">how_to_reg</span></div>
+              <span class="stat-label">Có Mặt Hôm Nay</span>
+            </div>
+            <div class="stat-value">142</div>
+            <div class="stat-desc">Nhân viên đã chấm công</div>
           </div>
-          <div class="stat-card danger">
-            <div class="stat-card-header"><span class="stat-label">Hôm nay đi trễ</span></div>
-            <div class="stat-value">Đang cập nhật...</div>
+
+          <div class="stat-card warning">
+            <div class="stat-card-header">
+              <div class="stat-icon warning" style="color: #ed6c02; background: #fff4e5;"><span class="material-icons-round">directions_run</span></div>
+              <span class="stat-label">Nghỉ Phép/Vắng</span>
+            </div>
+            <div class="stat-value">14</div>
+            <div class="stat-desc">Đã duyệt và chưa duyệt</div>
           </div>
-        </div>
-        <div class="empty-state" style="margin-top: 20px;">
-          <span class="material-icons-round">analytics</span>
-          <p>Chức năng Báo cáo & Thống kê dành cho Admin đang được phát triển</p>
         </div>
       </div>
     } @else {
-    <!-- Quick Check-in Card -->
-    <div class="checkin-card">
-      <div class="checkin-content">
-        <div class="checkin-info">
-          <h3>{{ greeting() }}</h3>
-          <div class="checkin-time">{{ currentTime }}</div>
-          <div class="checkin-date">{{ currentDate }}</div>
-        </div>
-        <button class="btn-checkin-large" (click)="quickCheckIn()">
-          <span class="material-icons-round">login</span>
-          Chấm công ngay
-        </button>
-      </div>
-    </div>
-
-    <!-- Stats Grid — Dùng computed signals từ AttendanceStore -->
-    <div class="stats-grid">
-      <div class="stat-card primary">
-        <div class="stat-card-header">
-          <div class="stat-icon primary">
-            <span class="material-icons-round">calendar_month</span>
+      <!-- GIAO DIỆN DÀNH CHO NHÂN VIÊN -->
+      <!-- Quick Check-in Card -->
+      <div class="checkin-card">
+        <div class="checkin-content">
+          <div class="checkin-info">
+            <h3>{{ greeting() }}</h3>
+            <div class="checkin-time">{{ currentTime }}</div>
+            <div class="checkin-date">{{ currentDate }}</div>
           </div>
-          <span class="stat-label">Tổng cộng</span>
+          <button class="btn-checkin-large" (click)="quickCheckIn()">
+            <span class="material-icons-round">login</span>
+            Chấm công ngay
+          </button>
         </div>
-        <div class="stat-value">{{ store.totalDays() }}</div>
-        <div class="stat-desc">Ngày công đã ghi nhận</div>
       </div>
 
-      <div class="stat-card success">
-        <div class="stat-card-header">
-          <div class="stat-icon success">
-            <span class="material-icons-round">check_circle</span>
+      <!-- Stats Grid — Dùng computed signals từ AttendanceStore -->
+      <div class="stats-grid">
+        <div class="stat-card primary">
+          <div class="stat-card-header">
+            <div class="stat-icon primary">
+              <span class="material-icons-round">calendar_month</span>
+            </div>
+            <span class="stat-label">Tổng cộng</span>
           </div>
-          <span class="stat-label">Đúng giờ</span>
+          <div class="stat-value">{{ store.totalDays() }}</div>
+          <div class="stat-desc">Ngày công đã ghi nhận</div>
         </div>
-        <div class="stat-value">{{ store.onTimeDays() }}</div>
-        <div class="stat-desc">Ngày đi đúng giờ</div>
-      </div>
 
-      <div class="stat-card danger">
-        <div class="stat-card-header">
-          <div class="stat-icon danger">
-            <span class="material-icons-round">warning</span>
+        <div class="stat-card success">
+          <div class="stat-card-header">
+            <div class="stat-icon success">
+              <span class="material-icons-round">check_circle</span>
+            </div>
+            <span class="stat-label">Đúng giờ</span>
           </div>
-          <span class="stat-label">Đi trễ</span>
+          <div class="stat-value">{{ store.onTimeDays() }}</div>
+          <div class="stat-desc">Ngày đi đúng giờ</div>
         </div>
-        <div class="stat-value">{{ store.lateDays() }}</div>
-        <div class="stat-desc">Ngày đi trễ</div>
-      </div>
 
-      <div class="stat-card info">
-        <div class="stat-card-header">
-          <div class="stat-icon info">
-            <span class="material-icons-round">percent</span>
+        <div class="stat-card danger">
+          <div class="stat-card-header">
+            <div class="stat-icon danger">
+              <span class="material-icons-round">warning</span>
+            </div>
+            <span class="stat-label">Đi trễ</span>
           </div>
-          <span class="stat-label">Tỷ lệ</span>
+          <div class="stat-value">{{ store.lateDays() }}</div>
+          <div class="stat-desc">Ngày đi trễ</div>
         </div>
-        <div class="stat-value">{{ store.onTimePercent() }}%</div>
-        <div class="stat-desc">Tỷ lệ đúng giờ</div>
-      </div>
-    </div>
 
-    <!-- Recent Records — Dùng recentRecords từ store -->
-    <div class="section-card">
-      <div class="section-header">
-        <div class="section-title">
-          <span class="material-icons-round">schedule</span>
-          Chấm công gần đây
+        <div class="stat-card info">
+          <div class="stat-card-header">
+            <div class="stat-icon info">
+              <span class="material-icons-round">percent</span>
+            </div>
+            <span class="stat-label">Tỷ lệ</span>
+          </div>
+          <div class="stat-value">{{ store.onTimePercent() }}%</div>
+          <div class="stat-desc">Tỷ lệ đúng giờ</div>
         </div>
       </div>
 
-      @if (store.isLoading()) {
-        <div class="loading-container">
-          <div class="loading-spinner"></div>
-          <p>Đang tải dữ liệu...</p>
+      <!-- Recent Records — Dùng recentRecords từ store -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="material-icons-round">schedule</span>
+            Chấm công gần đây
+          </div>
         </div>
-      } @else if (store.recentRecords().length === 0) {
-        <div class="empty-state">
-          <span class="material-icons-round">event_busy</span>
-          <p>Chưa có dữ liệu chấm công</p>
-          <small>Hãy bắt đầu chấm công ngày hôm nay!</small>
-        </div>
-      } @else {
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>STT</th>
-                <th>Ngày</th>
-                <th>Giờ vào</th>
-                <th>Giờ ra</th>
-                <th>Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (record of store.recentRecords(); track record.id; let i = $index) {
+
+        @if (store.isLoading()) {
+          <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>Đang tải dữ liệu...</p>
+          </div>
+        } @else if (store.recentRecords().length === 0) {
+          <div class="empty-state">
+            <span class="material-icons-round">event_busy</span>
+            <p>Chưa có dữ liệu chấm công</p>
+            <small>Hãy bắt đầu chấm công ngày hôm nay!</small>
+          </div>
+        } @else {
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
                 <tr>
-                  <td class="td-index">{{ i + 1 }}</td>
-                  <td class="td-date">{{ record.date }}</td>
-                  <td>
-                    <div class="td-time">
-                      <span class="material-icons-round">login</span>
-                      {{ record.checkIn }}
-                    </div>
-                  </td>
-                  <td>
-                    <div class="td-time">
-                      <span class="material-icons-round">logout</span>
-                      {{ record.checkOut }}
-                    </div>
-                  </td>
-                  <td>
-                    @switch (record.status) {
-                      @case ('Đúng giờ') { <span class="status-badge done">Đúng giờ</span> }
-                      @case ('Đi trễ') { <span class="status-badge todo">Đi trễ</span> }
-                      @case ('Đang làm việc') { <span class="status-badge doing" style="background: var(--info-bg); color: var(--info);">Đang làm việc</span> }
-                      @default { <span class="status-badge">{{ record.status }}</span> }
-                    }
-                  </td>
+                  <th>STT</th>
+                  <th>Ngày</th>
+                  <th>Giờ vào</th>
+                  <th>Giờ ra</th>
+                  <th>Trạng thái</th>
                 </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </div>
+              </thead>
+              <tbody>
+                @for (record of store.recentRecords(); track record.id; let i = $index) {
+                  <tr>
+                    <td class="td-index">{{ i + 1 }}</td>
+                    <td class="td-date">{{ record.date }}</td>
+                    <td>
+                      <div class="td-time">
+                        <span class="material-icons-round">login</span>
+                        {{ record.checkIn }}
+                      </div>
+                    </td>
+                    <td>
+                      <div class="td-time">
+                        <span class="material-icons-round">logout</span>
+                        {{ record.checkOut }}
+                      </div>
+                    </td>
+                    <td>
+                      @switch (record.status) {
+                        @case ('Đúng giờ') { <span class="status-badge done">Đúng giờ</span> }
+                        @case ('Đi trễ') { <span class="status-badge todo">Đi trễ</span> }
+                        @case ('Đang làm việc') { <span class="status-badge doing" style="background: var(--info-bg); color: var(--info);">Đang làm việc</span> }
+                        @default { <span class="status-badge">{{ record.status }}</span> }
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
     }
   `
 })
@@ -218,8 +229,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   constructor(
     public store: AttendanceStore,
     private notificationService: NotificationService,
-    private authService: AuthService
+    public authService: AuthService
   ) { }
+
+  // Tuần 8: Tính năng Role Based UI cho Dashboard
+  get isAdmin() {
+    return this.authService.isAdmin;
+  }
 
   ngOnInit(): void {
     this.updateTime();

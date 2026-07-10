@@ -24,4 +24,25 @@ export class EmployeeService {
   getById(id: number): Observable<ApiResponse<EmployeeInfo>> {
     return this.http.get<ApiResponse<EmployeeInfo>>(`${this.apiUrl}/${id}`);
   }
+
+  /**
+   * Tuần 9: Tạo nhân viên mới
+   */
+  create(data: any): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(this.apiUrl, data);
+  }
+
+  /**
+   * Tuần 9: Cập nhật nhân viên
+   */
+  update(id: number, data: any): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${this.apiUrl}/${id}`, data);
+  }
+
+  /**
+   * Tuần 9: Xóa nhân viên
+   */
+  delete(id: number): Observable<ApiResponse<any>> {
+    return this.http.delete<ApiResponse<any>>(`${this.apiUrl}/${id}`);
+  }
 }
