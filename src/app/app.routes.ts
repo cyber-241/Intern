@@ -39,10 +39,10 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
-    path: 'employees',
+    path: 'employee',
     loadComponent: () =>
-      import('./dashboard.component').then(m => m.DashboardComponent), // Mock
-    canActivate: [authGuard, adminGuard]
+      import('./employee.component').then(m => m.EmployeeComponent),
+    canActivate: [authGuard] // Yêu cầu đăng nhập, thực tế tuần sau sẽ phân quyền admin
   },
   {
     path: 'reports',

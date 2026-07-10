@@ -57,7 +57,7 @@ export class AuthService {
    * computed() — Kiểm tra user có phải admin không
    * Dùng để phân quyền hiển thị menu/chức năng admin
    */
-  isAdmin = computed(() => this._currentUser()?.role === 'admin');
+  isAdmin = computed(() => this._currentUser()?.role?.toLowerCase()?.trim() === 'admin');
 
   /**
    * computed() — Tên hiển thị rút gọn (lấy tên cuối)
