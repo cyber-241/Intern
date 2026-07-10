@@ -48,7 +48,7 @@ import { HttpErrorResponse } from '@angular/common/http';
               <td>
                 <div class="td-actions justify-end">
                   <button class="btn-icon-action text-info" (click)="openEditModal(emp)" title="Sửa">
-                    <span class="material-icons-round">edit_square</span>
+                    <span class="material-icons-round">edit</span>
                   </button>
                   <button class="btn-icon-action text-danger" (click)="deleteEmployee(emp.employeeId)" title="Xóa">
                     <span class="material-icons-round">delete_outline</span>
@@ -392,7 +392,8 @@ export class EmployeeComponent implements OnInit {
     gender: ['Nam', Validators.required],
     departmentId: [1, Validators.required],
     positionId: [5, Validators.required],
-    salary: [15000000, [Validators.required, Validators.min(0)]]
+    salary: [15000000, [Validators.required, Validators.min(0)]],
+    isActive: [true]
   });
 
   ngOnInit() {
@@ -418,7 +419,8 @@ export class EmployeeComponent implements OnInit {
       gender: 'Nam',
       departmentId: 1,
       positionId: 5,
-      salary: 15000000
+      salary: 15000000,
+      isActive: true
     });
     this.empForm.get('employeeCode')?.enable();
     this.showModal = true;
@@ -435,9 +437,10 @@ export class EmployeeComponent implements OnInit {
       email: emp.email,
       phone: emp.phone,
       gender: emp.gender,
-      departmentId: 1, // Fix tạm, đáng ra từ API detail phải trả về departmentId
-      positionId: 5, // Fix tạm
-      salary: 15000000 // Fix tạm
+      departmentId: emp.departmentId,
+      positionId: emp.positionId,
+      salary: emp.salary,
+      isActive: emp.isActive
     });
     this.empForm.get('employeeCode')?.disable(); // Không cho sửa mã NV
     
