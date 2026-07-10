@@ -34,6 +34,34 @@ const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
   standalone: true,
   styleUrls: ['./app.css'],
   template: `
+    @if (isAdmin()) {
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="material-icons-round">admin_panel_settings</span>
+            Bảng điều khiển Quản trị viên
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card primary">
+            <div class="stat-card-header"><span class="stat-label">Tổng nhân sự</span></div>
+            <div class="stat-value">Đang cập nhật...</div>
+          </div>
+          <div class="stat-card success">
+            <div class="stat-card-header"><span class="stat-label">Hôm nay đúng giờ</span></div>
+            <div class="stat-value">Đang cập nhật...</div>
+          </div>
+          <div class="stat-card danger">
+            <div class="stat-card-header"><span class="stat-label">Hôm nay đi trễ</span></div>
+            <div class="stat-value">Đang cập nhật...</div>
+          </div>
+        </div>
+        <div class="empty-state" style="margin-top: 20px;">
+          <span class="material-icons-round">analytics</span>
+          <p>Chức năng Báo cáo & Thống kê dành cho Admin đang được phát triển</p>
+        </div>
+      </div>
+    } @else {
     <!-- Quick Check-in Card -->
     <div class="checkin-card">
       <div class="checkin-content">
@@ -160,6 +188,7 @@ const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
         </div>
       }
     </div>
+    }
   `
 })
 export class DashboardComponent implements OnInit, OnDestroy {
@@ -169,6 +198,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
    */
   currentTime = '';
   currentDate = '';
+
+  // Tuần 8: Quyền Admin
+  isAdmin = computed(() => this.authService.isAdmin());
 
   private timerInterval: any;
 

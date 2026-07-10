@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
+import { adminGuard } from './guards/admin.guard';
 
 /**
  * App Routes - Week 6: Thêm Register + Forgot Password
@@ -36,6 +37,18 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./history.component').then(m => m.HistoryComponent),
     canActivate: [authGuard]
+  },
+  {
+    path: 'employees',
+    loadComponent: () =>
+      import('./dashboard.component').then(m => m.DashboardComponent), // Mock
+    canActivate: [authGuard, adminGuard]
+  },
+  {
+    path: 'reports',
+    loadComponent: () =>
+      import('./dashboard.component').then(m => m.DashboardComponent), // Mock
+    canActivate: [authGuard, adminGuard]
   },
   {
     path: '**',

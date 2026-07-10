@@ -19,6 +19,7 @@ export interface LoginResponse {
   message: string;
   data: {
     token: string;
+    refreshToken?: string;
     user: UserInfo;
   };
 }
@@ -38,6 +39,7 @@ export interface LoginResponse {
 export class AuthService {
   private readonly apiUrl = 'http://localhost:5188/api/auth';
   private readonly TOKEN_KEY = 'auth_token';
+  private readonly REFRESH_TOKEN_KEY = 'refresh_token';
   private readonly USER_KEY = 'user_info';
 
   // Signal: thông tin user hiện tại (reactive)
@@ -103,6 +105,9 @@ export class AuthService {
         if (response.success && response.data) {
           // Lưu token vào localStorage
           localStorage.setItem(this.TOKEN_KEY, response.data.token);
+          if (response.data.refreshToken) {
+            localStorage.setItem(this.REFRESH_TOKEN_KEY, response.data.refreshToken);
+          }
           // Cập nhật signal → effect() sẽ tự đồng bộ user vào localStorage
           this._currentUser.set(response.data.user);
         }
@@ -118,6 +123,7 @@ export class AuthService {
    */
   logout(): void {
     localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.REFRESH_TOKEN_KEY);
     // Set null → effect() sẽ tự xóa user khỏi localStorage
     this._currentUser.set(null);
     this.router.navigate(['/login']);
@@ -128,6 +134,24 @@ export class AuthService {
    */
   getToken(): string | null {
     return localStorage.getItem(this.TOKEN_KEY);
+  }
+
+  getRefreshToken(): string | null {
+    return localStorage.getItem(this.REFRESH_TOKEN_KEY);
+  }
+
+  refreshTokenApi(): Observable<any> {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) return throwError(() => new Error("No refresh token"));
+
+    return this.http.post<any>(`${this.apiUrl}/refresh-token`, { refreshToken }).pipe(
+      tap(res => {
+        if (res.success && res.data) {
+          localStorage.setItem(this.TOKEN_KEY, res.data.token);
+          localStorage.setItem(this.REFRESH_TOKEN_KEY, res.data.refreshToken);
+        }
+      })
+    );
   }
 
   /**

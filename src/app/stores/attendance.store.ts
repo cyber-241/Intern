@@ -112,11 +112,7 @@ export class AttendanceStore {
 
   constructor(private attendanceService: AttendanceService) {}
 
-  // ==================== Actions (thay đổi state) ====================
-
-  /**
-   * Load toàn bộ chấm công từ API
-   */
+  
   loadRecords(): void {
     this._isLoading.set(true);
     this._error.set(null);
@@ -135,10 +131,7 @@ export class AttendanceStore {
     });
   }
 
-  /**
-   * Thêm bản ghi chấm công mới
-   * Sau khi thành công → reload lại danh sách
-   */
+  
   addRecord(data: AttendanceFormData): Promise<boolean> {
     return new Promise((resolve) => {
       this._isLoading.set(true);

@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractContro
 import { FormsModule } from '@angular/forms';
 import { AttendanceStore } from './stores/attendance.store';
 import { AttendanceFormData } from './models/data.model';
+import { AuthService } from './services/auth.service';
 
 /**
  * ===== CONSTANTS - Dễ đọc, dễ bảo trì (theo feedback mentor) =====
@@ -98,10 +99,12 @@ const SATURDAY = 6;
       <!-- Toolbar -->
       <div class="toolbar">
         <div class="toolbar-left">
-          <button class="btn-primary" (click)="openAddModal()">
-            <span class="material-icons-round">add</span>
-            Thêm bản ghi
-          </button>
+          @if (isAdmin()) {
+            <button class="btn-primary" (click)="openAddModal()">
+              <span class="material-icons-round">add</span>
+              Thêm bản ghi
+            </button>
+          }
         </div>
         <div class="toolbar-right">
           <div class="search-box">
@@ -147,7 +150,9 @@ const SATURDAY = 6;
                 <th>Giờ vào</th>
                 <th>Giờ ra</th>
                 <th>Trạng thái</th>
-                <th>Hành động</th>
+                @if (isAdmin()) {
+                  <th>Hành động</th>
+                }
               </tr>
             </thead>
             <tbody>
@@ -182,16 +187,18 @@ const SATURDAY = 6;
                       @default { <span class="status-badge">{{ record.status }}</span> }
                     }
                   </td>
-                  <td>
-                    <div class="td-actions">
-                      <button class="btn-action edit" title="Sửa" (click)="openEditModal(record)">
-                        <span class="material-icons-round">edit</span>
-                      </button>
-                      <button class="btn-action delete" title="Xóa" (click)="openDeleteConfirm(record)">
-                        <span class="material-icons-round">delete</span>
-                      </button>
-                    </div>
-                  </td>
+                  @if (isAdmin()) {
+                    <td>
+                      <div class="td-actions">
+                        <button class="btn-action edit" title="Sửa" (click)="openEditModal(record)">
+                          <span class="material-icons-round">edit</span>
+                        </button>
+                        <button class="btn-action delete" title="Xóa" (click)="openDeleteConfirm(record)">
+                          <span class="material-icons-round">delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  }
                 </tr>
               }
             </tbody>
@@ -371,10 +378,15 @@ export class HistoryComponent implements OnInit {
   // Form
   attendanceForm!: FormGroup;
 
+  isAdmin: any;
+
   constructor(
     public store: AttendanceStore,
-    private fb: FormBuilder
-  ) { }
+    private fb: FormBuilder,
+    private authService: AuthService
+  ) {
+    this.isAdmin = this.authService.isAdmin;
+  }
 
   ngOnInit(): void {
     this.initForm();
