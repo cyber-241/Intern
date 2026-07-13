@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { SearchFilterComponent } from './shared/components/search-filter/search-filter.component';
 import { EmployeeService } from './services/employee.service';
 import { EmployeeInfo } from './models/data.model';
 import { NotificationService } from './services/notification.service';
@@ -9,7 +10,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 @Component({
   selector: 'app-employee',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, SearchFilterComponent],
   template: `
     <div class="section-card">
       <div class="section-header">
@@ -19,10 +20,14 @@ import { HttpErrorResponse } from '@angular/common/http';
         </div>
       </div>
       
-      <div class="toolbar mb-4">
+      <div class="toolbar mb-4" style="display: flex; justify-content: space-between; align-items: center;">
         <button class="btn-primary" (click)="openAddModal()">
           <span class="material-icons-round">person_add</span> Thêm Nhân Viên
         </button>
+        <app-search-filter
+          placeholder="Tìm theo mã, tên, email..."
+          (searchChanged)="onSearch($event)"
+        ></app-search-filter>
       </div>
 
       <!-- Bảng danh sách nhân viên -->
@@ -39,7 +44,7 @@ import { HttpErrorResponse } from '@angular/common/http';
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let emp of employees">
+            <tr *ngFor="let emp of filteredEmployees">
               <td class="font-weight-600">{{ emp.employeeCode }}</td>
               <td>{{ emp.fullName }}</td>
               <td class="text-muted">{{ emp.email }}</td>
@@ -56,7 +61,7 @@ import { HttpErrorResponse } from '@angular/common/http';
                 </div>
               </td>
             </tr>
-            <tr *ngIf="employees.length === 0">
+            <tr *ngIf="filteredEmployees.length === 0">
               <td colspan="6" class="text-center py-5 text-muted">
                 <span class="material-icons-round" style="font-size: 3rem; opacity: 0.2">hourglass_empty</span>
                 <div class="mt-2">Đang tải dữ liệu...</div>
@@ -378,6 +383,18 @@ export class EmployeeComponent implements OnInit {
   private notif = inject(NotificationService);
 
   employees: EmployeeInfo[] = [];
+  searchQuery: string = '';
+  
+  get filteredEmployees(): EmployeeInfo[] {
+    if (!this.searchQuery) return this.employees;
+    const lowerQuery = this.searchQuery.toLowerCase();
+    return this.employees.filter(e => 
+      e.fullName.toLowerCase().includes(lowerQuery) || 
+      e.employeeCode.toLowerCase().includes(lowerQuery) ||
+      e.email.toLowerCase().includes(lowerQuery)
+    );
+  }
+
   showModal = false;
   isEditing = false;
   editingId: number | null = null;
@@ -409,6 +426,10 @@ export class EmployeeComponent implements OnInit {
       },
       error: (err) => this.notif.error('Không thể tải dữ liệu nhân viên')
     });
+  }
+
+  onSearch(query: string) {
+    this.searchQuery = query;
   }
 
   openAddModal() {

@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { AttendanceStore } from './stores/attendance.store';
 import { AttendanceFormData } from './models/data.model';
 import { AuthService } from './services/auth.service';
-
+import { SearchFilterComponent } from './shared/components/search-filter/search-filter.component';
+import { StatusBadgeComponent } from './shared/components/status-badge/status-badge.component';
 /**
  * ===== CONSTANTS - Dễ đọc, dễ bảo trì (theo feedback mentor) =====
  * Thay vì dùng magic numbers 480, 1050... ta dùng constants có tên rõ ràng
@@ -63,7 +64,7 @@ const SATURDAY = 6;
 @Component({
   selector: 'app-history',
   standalone: true,
-  imports: [ReactiveFormsModule, FormsModule],
+  imports: [ReactiveFormsModule, FormsModule, SearchFilterComponent, StatusBadgeComponent],
   styleUrls: ['./app.css'],
   template: `
     <!-- Toast Notification -->
@@ -107,21 +108,14 @@ const SATURDAY = 6;
           }
         </div>
         <div class="toolbar-right">
-          <div class="search-box">
-            <span class="material-icons-round">search</span>
-            <input
-              type="text"
-              placeholder="Tìm theo ngày..."
-              [ngModel]="store.searchQuery()"
-              (ngModelChange)="store.setSearchQuery($event)"
-            />
-          </div>
-          <select class="filter-select" [ngModel]="store.filterStatus()" (ngModelChange)="store.setFilterStatus($event)">
-            <option value="all">Tất cả trạng thái</option>
-            <option value="Đúng giờ">Đúng giờ</option>
-            <option value="Đi trễ">Đi trễ</option>
-            <option value="Đang làm việc">Đang làm việc</option>
-          </select>
+          <app-search-filter
+            placeholder="Tìm theo ngày..."
+            [filterOptions]="[{label: 'Đúng giờ', value: 'Đúng giờ'}, {label: 'Đi trễ', value: 'Đi trễ'}, {label: 'Đang làm việc', value: 'Đang làm việc'}]"
+            [initialSearchQuery]="store.searchQuery()"
+            [initialFilterValue]="store.filterStatus()"
+            (searchChanged)="store.setSearchQuery($event)"
+            (filterChanged)="store.setFilterStatus($event.toString())"
+          ></app-search-filter>
         </div>
       </div>
 
@@ -180,12 +174,7 @@ const SATURDAY = 6;
                     </div>
                   </td>
                   <td>
-                    @switch (record.status) {
-                      @case ('Đúng giờ') { <span class="status-badge done">Đúng giờ</span> }
-                      @case ('Đi trễ') { <span class="status-badge todo">Đi trễ</span> }
-                      @case ('Đang làm việc') { <span class="status-badge doing" style="background: var(--info-bg); color: var(--info);">Đang làm việc</span> }
-                      @default { <span class="status-badge">{{ record.status }}</span> }
-                    }
+                    <app-status-badge [status]="record.status"></app-status-badge>
                   </td>
                   @if (isAdmin()) {
                     <td>

@@ -232,11 +232,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     public authService: AuthService
   ) { }
 
-  // Tuần 8: Tính năng Role Based UI cho Dashboard
-  get isAdmin() {
-    return this.authService.isAdmin;
-  }
-
   ngOnInit(): void {
     this.updateTime();
     this.timerInterval = setInterval(() => this.updateTime(), 1000);

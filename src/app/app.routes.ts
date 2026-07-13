@@ -45,12 +45,6 @@ export const routes: Routes = [
     canActivate: [authGuard] // Yêu cầu đăng nhập, thực tế tuần sau sẽ phân quyền admin
   },
   {
-    path: 'reports',
-    loadComponent: () =>
-      import('./dashboard.component').then(m => m.DashboardComponent), // Mock
-    canActivate: [authGuard, adminGuard]
-  },
-  {
     path: '**',
     redirectTo: 'dashboard'
   }
