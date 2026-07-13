@@ -30,10 +30,6 @@ export class App implements OnInit, OnDestroy {
     private notificationService: NotificationService
   ) {}
 
-  get isAdmin() {
-    return this.authService.isAdmin;
-  }
-
   ngOnInit(): void {
     this.updateDateTime();
     this.timerInterval = setInterval(() => this.updateDateTime(), 1000);
