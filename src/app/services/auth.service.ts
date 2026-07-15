@@ -25,13 +25,13 @@ export interface LoginResponse {
 }
 
 /**
- * AuthService — Tuần 7: Mở rộng Signals
+ * AuthService â€” Tuáº§n 7: Má»Ÿ rá»™ng Signals
  *
- * Tuần 6: signal + computed cơ bản (currentUser, isLoggedIn)
- * Tuần 7: Thêm:
- *   - isAdmin = computed()     → phân quyền dựa trên role
- *   - displayName = computed() → tên hiển thị rút gọn
- *   - effect()                 → tự đồng bộ state với localStorage
+ * Tuáº§n 6: signal + computed cÆ¡ báº£n (currentUser, isLoggedIn)
+ * Tuáº§n 7: ThĂªm:
+ *   - isAdmin = computed()     â†’ phĂ¢n quyá»n dá»±a trĂªn role
+ *   - displayName = computed() â†’ tĂªn hiá»ƒn thá»‹ rĂºt gá»n
+ *   - effect()                 â†’ tá»± Ä‘á»“ng bá»™ state vá»›i localStorage
  */
 @Injectable({
   providedIn: 'root'
@@ -42,26 +42,26 @@ export class AuthService {
   private readonly REFRESH_TOKEN_KEY = 'refresh_token';
   private readonly USER_KEY = 'user_info';
 
-  // Signal: thông tin user hiện tại (reactive)
+  // Signal: thĂ´ng tin user hiá»‡n táº¡i (reactive)
   private _currentUser = signal<UserInfo | null>(this.loadUserFromStorage());
 
-  // Computed: kiểm tra trạng thái đăng nhập
+  // Computed: kiá»ƒm tra tráº¡ng thĂ¡i Ä‘Äƒng nháº­p
   isLoggedIn = computed(() => this._currentUser() !== null && !!this.getToken());
 
-  // Public readonly signal để các component theo dõi
+  // Public readonly signal Ä‘á»ƒ cĂ¡c component theo dĂµi
   currentUser = this._currentUser.asReadonly();
 
-  // === Tuần 7: Computed signals mở rộng ===
+  // === Tuáº§n 7: Computed signals má»Ÿ rá»™ng ===
 
   /**
-   * computed() — Kiểm tra user có phải admin không
-   * Dùng để phân quyền hiển thị menu/chức năng admin
+   * computed() â€” Kiá»ƒm tra user cĂ³ pháº£i admin khĂ´ng
+   * DĂ¹ng Ä‘á»ƒ phĂ¢n quyá»n hiá»ƒn thá»‹ menu/chá»©c nÄƒng admin
    */
   isAdmin = computed(() => this._currentUser()?.role?.toLowerCase()?.trim() === 'admin');
 
   /**
-   * computed() — Tên hiển thị rút gọn (lấy tên cuối)
-   * "Nguyễn Bảo Hân" → "Hân"
+   * computed() â€” TĂªn hiá»ƒn thá»‹ rĂºt gá»n (láº¥y tĂªn cuá»‘i)
+   * "Nguyá»…n Báº£o HĂ¢n" â†’ "HĂ¢n"
    */
   displayName = computed(() => {
     const user = this._currentUser();
@@ -71,8 +71,8 @@ export class AuthService {
   });
 
   /**
-   * computed() — Tên phòng ban + chức vụ
-   * "Phòng Kỹ Thuật - Nhân Viên"
+   * computed() â€” TĂªn phĂ²ng ban + chá»©c vá»¥
+   * "PhĂ²ng Ká»¹ Thuáº­t - NhĂ¢n ViĂªn"
    */
   userPosition = computed(() => {
     const user = this._currentUser();
@@ -82,9 +82,9 @@ export class AuthService {
 
   constructor(private http: HttpClient, private router: Router) {
     /**
-     * effect() — Tuần 7: Tự đồng bộ state với localStorage
-     * Khi _currentUser thay đổi → tự động cập nhật localStorage
-     * Không cần gọi localStorage.setItem ở mỗi nơi nữa
+     * effect() â€” Tuáº§n 7: Tá»± Ä‘á»“ng bá»™ state vá»›i localStorage
+     * Khi _currentUser thay Ä‘á»•i â†’ tá»± Ä‘á»™ng cáº­p nháº­t localStorage
+     * KhĂ´ng cáº§n gá»i localStorage.setItem á»Ÿ má»—i nÆ¡i ná»¯a
      */
     effect(() => {
       const user = this._currentUser();
@@ -97,18 +97,18 @@ export class AuthService {
   }
 
   /**
-   * Đăng nhập — gọi POST /api/auth/login, lưu token + user info
+   * ÄÄƒng nháº­p â€” gá»i POST /api/auth/login, lÆ°u token + user info
    */
   login(username: string, password: string): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/login`, { username, password }).pipe(
       tap(response => {
         if (response.success && response.data) {
-          // Lưu token vào localStorage
+          // LÆ°u token vĂ o localStorage
           localStorage.setItem(this.TOKEN_KEY, response.data.token);
           if (response.data.refreshToken) {
             localStorage.setItem(this.REFRESH_TOKEN_KEY, response.data.refreshToken);
           }
-          // Cập nhật signal → effect() sẽ tự đồng bộ user vào localStorage
+          // Cáº­p nháº­t signal â†’ effect() sáº½ tá»± Ä‘á»“ng bá»™ user vĂ o localStorage
           this._currentUser.set(response.data.user);
         }
       }),
@@ -119,18 +119,18 @@ export class AuthService {
   }
 
   /**
-   * Đăng xuất — xóa token, reset state, redirect về login
+   * ÄÄƒng xuáº¥t â€” xĂ³a token, reset state, redirect vá» login
    */
   logout(): void {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.REFRESH_TOKEN_KEY);
-    // Set null → effect() sẽ tự xóa user khỏi localStorage
+    // Set null â†’ effect() sáº½ tá»± xĂ³a user khá»i localStorage
     this._currentUser.set(null);
     this.router.navigate(['/login']);
   }
 
   /**
-   * Lấy JWT token từ localStorage
+   * Láº¥y JWT token tá»« localStorage
    */
   getToken(): string | null {
     return localStorage.getItem(this.TOKEN_KEY);
@@ -155,7 +155,7 @@ export class AuthService {
   }
 
   /**
-   * Load thông tin user từ localStorage khi khởi động app
+   * Load thĂ´ng tin user tá»« localStorage khi khá»Ÿi Ä‘á»™ng app
    */
   private loadUserFromStorage(): UserInfo | null {
     try {
@@ -165,5 +165,8 @@ export class AuthService {
       return null;
     }
   }
+
+  changePassword(oldPassword: string, newPassword: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/change-password`, { oldPassword, newPassword });
+  }
 }
-// Hotfix: �? v� l?i b?o m?t kh?n c?p

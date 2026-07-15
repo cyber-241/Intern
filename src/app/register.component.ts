@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -237,8 +237,35 @@ import { HttpClient } from '@angular/common/http';
         <div class="form-group">
           <label>Xác nhận mật khẩu</label>
           <div class="input-wrapper">
-            <input type="password" placeholder="Nhập lại mật khẩu" [(ngModel)]="confirmPassword" (keyup.enter)="register()" />
+            <input type="password" placeholder="Nhập lại mật khẩu" [(ngModel)]="confirmPassword" />
             <span class="material-icons-round">lock</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Phòng ban</label>
+            <div class="input-wrapper">
+              <select [(ngModel)]="departmentId">
+                @for (dept of departments; track dept.departmentId) {
+                  <option [value]="dept.departmentId">{{ dept.departmentName }}</option>
+                }
+              </select>
+              <span class="material-icons-round">domain</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Chức vụ</label>
+            <div class="input-wrapper">
+              <select [(ngModel)]="positionId">
+                <option [value]="5">Nhân Viên</option>
+                <option [value]="4">Phó Phòng</option>
+                <option [value]="3">Trưởng Phòng</option>
+                <option [value]="2">Phó Giám Đốc</option>
+                <option [value]="1">Giám Đốc</option>
+              </select>
+              <span class="material-icons-round">work</span>
+            </div>
           </div>
         </div>
 
@@ -264,17 +291,30 @@ import { HttpClient } from '@angular/common/http';
     </div>
   `
 })
-export class RegisterComponent {
+export class RegisterComponent implements OnInit {
   fullName = '';
   email = '';
   username = '';
   password = '';
   confirmPassword = '';
+  departmentId = 1;
+  positionId = 5;
+  departments: any[] = [];
   errorMessage = signal('');
   successMessage = signal('');
   isLoading = signal(false);
 
   constructor(private http: HttpClient, private router: Router) {}
+
+  ngOnInit(): void {
+    this.http.get<any>('http://localhost:5188/api/departments').subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.departments = res.data;
+        }
+      }
+    });
+  }
 
   register(): void {
     this.errorMessage.set('');
@@ -302,7 +342,9 @@ export class RegisterComponent {
       fullName: this.fullName.trim(),
       email: this.email.trim(),
       username: this.username.trim(),
-      password: this.password
+      password: this.password,
+      departmentId: Number(this.departmentId),
+      positionId: Number(this.positionId)
     }).subscribe({
       next: (response) => {
         if (response.success) {

@@ -138,7 +138,19 @@ import { AuthService } from './services/auth.service';
       outline: none;
       border-color: #4318ff;
       box-shadow: 0 0 0 4px rgba(67, 24, 255, 0.12);
-      background: white;
+      background: #ffffff;
+    }
+
+    .pwd-toggle {
+      position: absolute !important;
+      left: auto !important;
+      right: 14px !important;
+      cursor: pointer;
+      pointer-events: auto !important;
+    }
+    
+    .pwd-toggle:hover {
+      color: #4318ff !important;
     }
 
     .input-wrapper input:focus + .material-icons-round,
@@ -289,12 +301,16 @@ import { AuthService } from './services/auth.service';
           <label>Mật khẩu</label>
           <div class="input-wrapper">
             <input
-              type="password"
+              [type]="showPassword() ? 'text' : 'password'"
               placeholder="Nhập mật khẩu"
               [(ngModel)]="password"
               (keyup.enter)="login()"
+              style="padding-right: 44px;"
             />
             <span class="material-icons-round" style="pointer-events: none;">lock</span>
+            <span class="material-icons-round pwd-toggle" (click)="togglePassword()">
+              {{ showPassword() ? 'visibility_off' : 'visibility' }}
+            </span>
           </div>
         </div>
 
@@ -326,6 +342,11 @@ export class LoginComponent {
   password = '';
   errorMessage = signal('');
   isLoading = signal(false);
+  showPassword = signal(false);
+
+  togglePassword(): void {
+    this.showPassword.update(v => !v);
+  }
 
   constructor(
     private authService: AuthService,

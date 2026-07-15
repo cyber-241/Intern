@@ -22,6 +22,17 @@ export interface EmployeeInfo {
   hireDate: string;
   isActive: boolean;
   avatar: string | null;
+  totalLateMinutes?: number;
+  totalDeduction?: number;
+  dailyAttendance?: {
+    attendanceId?: number;
+    checkInTime?: string;
+    checkOutTime?: string;
+    lateMinutes?: number;
+    earlyLeaveMinutes?: number;
+    deductionAmount?: number;
+    status?: string;
+  } | null;
   // Aliases cho backward compatibility (dùng trong app.ts/app.html)
   id?: string;
   department?: string;

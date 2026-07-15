@@ -14,8 +14,9 @@ export class EmployeeService {
   /**
    * Lấy danh sách tất cả nhân viên
    */
-  getAll(): Observable<ApiResponse<EmployeeInfo[]>> {
-    return this.http.get<ApiResponse<EmployeeInfo[]>>(this.apiUrl);
+  getAll(date?: string): Observable<ApiResponse<EmployeeInfo[]>> {
+    const url = date ? `${this.apiUrl}?date=${date}` : this.apiUrl;
+    return this.http.get<ApiResponse<EmployeeInfo[]>>(url);
   }
 
   /**

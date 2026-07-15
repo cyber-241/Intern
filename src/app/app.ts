@@ -1,12 +1,14 @@
 import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from './services/auth.service';
 import { NotificationService, Notification } from './services/notification.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterModule],
+  imports: [RouterModule, CommonModule, ReactiveFormsModule],
   templateUrl: './app.html',
   styleUrls: ['./app.css']
 })
@@ -25,10 +27,22 @@ export class App implements OnInit, OnDestroy {
   // Tuần 6: Toast notifications
   notifications = computed(() => this.notificationService.notifications());
 
+  // Change Password state
+  showChangePasswordModal = false;
+  changePasswordForm: FormGroup;
+  passwordError = '';
+
   constructor(
     private authService: AuthService,
-    private notificationService: NotificationService
-  ) {}
+    private notificationService: NotificationService,
+    private fb: FormBuilder
+  ) {
+    this.changePasswordForm = this.fb.group({
+      oldPassword: ['', [Validators.required]],
+      newPassword: ['', [Validators.required, Validators.minLength(6)]],
+      confirmPassword: ['', [Validators.required]]
+    });
+  }
 
   ngOnInit(): void {
     this.updateDateTime();
@@ -69,5 +83,41 @@ export class App implements OnInit, OnDestroy {
 
   dismissToast(id: number): void {
     this.notificationService.dismiss(id);
+  }
+
+  openChangePasswordModal(): void {
+    this.showChangePasswordModal = true;
+    this.passwordError = '';
+    this.changePasswordForm.reset();
+  }
+
+  closeChangePasswordModal(): void {
+    this.showChangePasswordModal = false;
+  }
+
+  onChangePasswordSubmit(): void {
+    if (this.changePasswordForm.invalid) {
+      this.changePasswordForm.markAllAsTouched();
+      return;
+    }
+
+    const { oldPassword, newPassword, confirmPassword } = this.changePasswordForm.value;
+
+    if (newPassword !== confirmPassword) {
+      this.passwordError = 'Mật khẩu xác nhận không khớp.';
+      return;
+    }
+
+    this.authService.changePassword(oldPassword, newPassword).subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.notificationService.success('Đổi mật khẩu thành công');
+          this.closeChangePasswordModal();
+        }
+      },
+      error: (err) => {
+        this.passwordError = err.error?.message || 'Đổi mật khẩu thất bại.';
+      }
+    });
   }
 }

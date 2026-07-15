@@ -1,8 +1,9 @@
-import { Component, OnInit, OnDestroy, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, signal } from '@angular/core';
 import { AttendanceStore } from './stores/attendance.store';
 import { NotificationService } from './services/notification.service';
 import { AuthService } from './services/auth.service';
 import { AttendanceRecord } from './models/data.model';
+import { EmployeeService } from './services/employee.service';
 
 /**
  * Constants — Dùng tên rõ ràng thay vì magic numbers (theo feedback mentor)
@@ -48,7 +49,7 @@ const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
               <div class="stat-icon primary"><span class="material-icons-round">people</span></div>
               <span class="stat-label">Tổng Nhân Sự</span>
             </div>
-            <div class="stat-value">156</div>
+            <div class="stat-value">{{ totalEmployees() }}</div>
             <div class="stat-desc">Đang làm việc tại công ty</div>
           </div>
 
@@ -57,7 +58,7 @@ const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
               <div class="stat-icon success"><span class="material-icons-round">how_to_reg</span></div>
               <span class="stat-label">Có Mặt Hôm Nay</span>
             </div>
-            <div class="stat-value">142</div>
+            <div class="stat-value">{{ presentEmployees() }}</div>
             <div class="stat-desc">Nhân viên đã chấm công</div>
           </div>
 
@@ -66,7 +67,7 @@ const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
               <div class="stat-icon warning" style="color: #ed6c02; background: #fff4e5;"><span class="material-icons-round">directions_run</span></div>
               <span class="stat-label">Nghỉ Phép/Vắng</span>
             </div>
-            <div class="stat-value">14</div>
+            <div class="stat-value">{{ absentEmployees() }}</div>
             <div class="stat-desc">Đã duyệt và chưa duyệt</div>
           </div>
         </div>
@@ -226,10 +227,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return 'Xin chào, chào buổi tối!';
   });
 
+  totalEmployees = signal<number>(0);
+  presentEmployees = signal<number>(0);
+  absentEmployees = signal<number>(0);
+
   constructor(
     public store: AttendanceStore,
     private notificationService: NotificationService,
-    public authService: AuthService
+    public authService: AuthService,
+    private employeeService: EmployeeService
   ) { }
 
   ngOnInit(): void {
@@ -238,6 +244,27 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     // Tuần 7: Gọi store.loadRecords() thay vì tự gọi service
     this.store.loadRecords();
+
+    if (this.authService.isAdmin()) {
+      this.loadAdminStats();
+    }
+  }
+
+  loadAdminStats(): void {
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    this.employeeService.getAll(dateStr).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          const employees = res.data;
+          this.totalEmployees.set(employees.length);
+          const present = employees.filter((e: any) => e.dailyAttendance && e.dailyAttendance.checkInTime).length;
+          this.presentEmployees.set(present);
+          this.absentEmployees.set(employees.length - present);
+        }
+      }
+    });
   }
 
   ngOnDestroy(): void {
