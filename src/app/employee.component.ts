@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DecimalPipe, SlicePipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { SearchFilterComponent } from './shared/components/search-filter/search-filter.component';
 import { EmployeeService } from './services/employee.service';
@@ -8,10 +8,17 @@ import { EmployeeInfo } from './models/data.model';
 import { NotificationService } from './services/notification.service';
 import { HttpErrorResponse } from '@angular/common/http';
 
+/**
+ * Tuần 2: Chuyển đổi từ *ngIf/*ngFor (structural directives) sang @if/@for/@switch (built-in control flow)
+ * - Không cần import CommonModule nữa → import riêng DecimalPipe, SlicePipe cho pipes
+ * - @if thay thế *ngIf
+ * - @for thay thế *ngFor (bắt buộc có track expression)
+ * - @switch thay thế chuỗi *ngIf cho positionId
+ */
 @Component({
   selector: 'app-employee',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, SearchFilterComponent],
+  imports: [DecimalPipe, SlicePipe, ReactiveFormsModule, SearchFilterComponent],
   template: `
     <div class="section-card">
       <div class="section-header">
@@ -34,7 +41,7 @@ import { HttpErrorResponse } from '@angular/common/http';
       </div>
 
       <!-- ============== TAB 1: QUẢN LÝ NHÂN VIÊN ============== -->
-      <ng-container *ngIf="activeTab === 'employees'">
+      @if (activeTab === 'employees') {
         <div class="toolbar mb-4" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
           <button class="btn-primary" (click)="openAddModal()">
             <span class="material-icons-round">person_add</span> Thêm Nhân Viên
@@ -61,7 +68,7 @@ import { HttpErrorResponse } from '@angular/common/http';
               </tr>
             </thead>
             <tbody>
-              <ng-container *ngFor="let group of groupedEmployees">
+              @for (group of groupedEmployees; track group.departmentName) {
                 <tr>
                   <td colspan="9" class="font-weight-600 text-primary" style="background: var(--bg-hover);">
                     <div style="display: flex; align-items: center;">
@@ -70,45 +77,51 @@ import { HttpErrorResponse } from '@angular/common/http';
                     </div>
                   </td>
                 </tr>
-                <tr *ngFor="let emp of group.employees; let i = index">
-                  <td>{{ i + 1 }}</td>
-                  <td class="font-weight-600">{{ emp.employeeCode }}</td>
-                  <td>
-                    {{ emp.fullName }}
-                    <span *ngIf="emp.positionId === 1" class="badge badge-light" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; margin-left: 8px; font-size: 0.7rem; border: 1px solid rgba(239, 68, 68, 0.2);">Giám Đốc</span>
-                    <span *ngIf="emp.positionId === 2" class="badge badge-light" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; margin-left: 8px; font-size: 0.7rem; border: 1px solid rgba(245, 158, 11, 0.2);">Phó Giám Đốc</span>
-                    <span *ngIf="emp.positionId === 3" class="badge badge-light" style="background: rgba(67, 24, 255, 0.1); color: var(--primary); margin-left: 8px; font-size: 0.7rem;">Trưởng Phòng</span>
-                  </td>
-                  <td class="text-muted">{{ emp.email }}</td>
-                  <td class="text-muted">{{ emp.phone || '-' }}</td>
-                  <td>{{ emp.departmentName }}</td>
-                  <td>{{ emp.positionName }}</td>
-                  <td class="font-weight-600">{{ emp.salary | number }} ₫</td>
-                  <td>
-                    <div class="td-actions justify-end">
-                      <button class="btn-icon-action text-info" (click)="openEditModal(emp)" title="Sửa thông tin">
-                        <span class="material-icons-round">edit</span>
-                      </button>
-                      <button class="btn-icon-action text-danger" (click)="deleteEmployee(emp.employeeId)" title="Xóa nhân viên">
-                        <span class="material-icons-round">delete_outline</span>
-                      </button>
-                    </div>
+                @for (emp of group.employees; track emp.employeeId; let i = $index) {
+                  <tr>
+                    <td>{{ i + 1 }}</td>
+                    <td class="font-weight-600">{{ emp.employeeCode }}</td>
+                    <td>
+                      {{ emp.fullName }}
+                      @switch (emp.positionId) {
+                        @case (1) { <span class="badge badge-light" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; margin-left: 8px; font-size: 0.7rem; border: 1px solid rgba(239, 68, 68, 0.2);">Giám Đốc</span> }
+                        @case (2) { <span class="badge badge-light" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; margin-left: 8px; font-size: 0.7rem; border: 1px solid rgba(245, 158, 11, 0.2);">Phó Giám Đốc</span> }
+                        @case (3) { <span class="badge badge-light" style="background: rgba(67, 24, 255, 0.1); color: var(--primary); margin-left: 8px; font-size: 0.7rem;">Trưởng Phòng</span> }
+                      }
+                    </td>
+                    <td class="text-muted">{{ emp.email }}</td>
+                    <td class="text-muted">{{ emp.phone || '-' }}</td>
+                    <td>{{ emp.departmentName }}</td>
+                    <td>{{ emp.positionName }}</td>
+                    <td class="font-weight-600">{{ emp.salary | number }} ₫</td>
+                    <td>
+                      <div class="td-actions justify-end">
+                        <button class="btn-icon-action text-info" (click)="openEditModal(emp)" title="Sửa thông tin">
+                          <span class="material-icons-round">edit</span>
+                        </button>
+                        <button class="btn-icon-action text-danger" (click)="deleteEmployee(emp.employeeId)" title="Xóa nhân viên">
+                          <span class="material-icons-round">delete_outline</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+              @if (filteredEmployees.length === 0) {
+                <tr>
+                  <td colspan="9" class="text-center py-5 text-muted">
+                    <span class="material-icons-round" style="font-size: 3rem; opacity: 0.2">hourglass_empty</span>
+                    <div class="mt-2">Không tìm thấy dữ liệu...</div>
                   </td>
                 </tr>
-              </ng-container>
-              <tr *ngIf="filteredEmployees.length === 0">
-                <td colspan="9" class="text-center py-5 text-muted">
-                  <span class="material-icons-round" style="font-size: 3rem; opacity: 0.2">hourglass_empty</span>
-                  <div class="mt-2">Không tìm thấy dữ liệu...</div>
-                </td>
-              </tr>
+              }
             </tbody>
           </table>
         </div>
-      </ng-container>
+      }
 
       <!-- ============== TAB 2: CHẤM CÔNG THEO NGÀY ============== -->
-      <ng-container *ngIf="activeTab === 'attendance'">
+      @if (activeTab === 'attendance') {
         <div class="toolbar mb-4" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="material-icons-round text-primary">calendar_today</span>
@@ -148,7 +161,7 @@ import { HttpErrorResponse } from '@angular/common/http';
               </tr>
             </thead>
             <tbody>
-              <ng-container *ngFor="let group of groupedAttendanceEmployees">
+              @for (group of groupedAttendanceEmployees; track group.departmentName) {
                 <tr>
                   <td colspan="11" class="font-weight-600 text-primary" style="background: var(--bg-hover);">
                     <div style="display: flex; align-items: center;">
@@ -157,225 +170,267 @@ import { HttpErrorResponse } from '@angular/common/http';
                     </div>
                   </td>
                 </tr>
-                <tr *ngFor="let emp of group.employees; let i = index">
-                  <td>{{ i + 1 }}</td>
-                  <td class="font-weight-600">{{ emp.employeeCode }}</td>
-                  <td>
-                    {{ emp.fullName }}
-                    <span *ngIf="emp.positionId === 1" class="badge badge-light" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; margin-left: 8px; font-size: 0.7rem; border: 1px solid rgba(239, 68, 68, 0.2);">Giám Đốc</span>
-                    <span *ngIf="emp.positionId === 2" class="badge badge-light" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; margin-left: 8px; font-size: 0.7rem; border: 1px solid rgba(245, 158, 11, 0.2);">Phó Giám Đốc</span>
-                    <span *ngIf="emp.positionId === 3" class="badge badge-light" style="background: rgba(67, 24, 255, 0.1); color: var(--primary); margin-left: 8px; font-size: 0.7rem;">Trưởng Phòng</span>
-                  </td>
-                  <td>{{ emp.departmentName }}</td>
-                  <td>{{ emp.positionName }}</td>
-                  <td>
-                    <span class="font-weight-600" *ngIf="emp.dailyAttendance?.checkInTime">{{ emp.dailyAttendance?.checkInTime | slice:0:5 }}</span>
-                    <span class="text-muted" *ngIf="!emp.dailyAttendance?.checkInTime">-</span>
-                  </td>
-                  <td>
-                    <span class="font-weight-600" *ngIf="emp.dailyAttendance?.checkOutTime">{{ emp.dailyAttendance?.checkOutTime | slice:0:5 }}</span>
-                    <span class="text-muted" *ngIf="!emp.dailyAttendance?.checkOutTime">-</span>
-                  </td>
-                  <td>
-                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                      <span class="text-danger" *ngIf="emp.dailyAttendance?.checkInTime && emp.dailyAttendance?.checkOutTime && (emp.dailyAttendance?.lateMinutes || 0) > 0" style="white-space: nowrap;">
-                        <span class="material-icons-round" style="font-size: 0.9rem; vertical-align: bottom;">schedule</span> Trễ: {{ emp.dailyAttendance?.lateMinutes }}p
-                      </span>
-                      <span class="text-warning" *ngIf="emp.dailyAttendance?.checkInTime && emp.dailyAttendance?.checkOutTime && (emp.dailyAttendance?.earlyLeaveMinutes || 0) > 0" style="white-space: nowrap;">
-                        <span class="material-icons-round" style="font-size: 0.9rem; vertical-align: bottom;">directions_run</span> Sớm: {{ emp.dailyAttendance?.earlyLeaveMinutes }}p
-                      </span>
-                      <span class="text-muted" *ngIf="!emp.dailyAttendance?.checkInTime || !emp.dailyAttendance?.checkOutTime || (!(emp.dailyAttendance?.lateMinutes || 0) && !(emp.dailyAttendance?.earlyLeaveMinutes || 0))">-</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span class="text-danger font-weight-600" *ngIf="emp.dailyAttendance?.checkInTime && emp.dailyAttendance?.checkOutTime && (emp.dailyAttendance?.deductionAmount || 0) > 0">
-                      -{{ emp.dailyAttendance?.deductionAmount | number }} ₫
-                    </span>
-                    <span class="text-muted" *ngIf="!emp.dailyAttendance?.checkInTime || !emp.dailyAttendance?.checkOutTime || !(emp.dailyAttendance?.deductionAmount || 0)">-</span>
-                  </td>
-                  <td>
-                    <ng-container *ngIf="emp.dailyAttendance?.status">
-                      <span class="status-badge" [class.status-ontime]="emp.dailyAttendance?.status === 'Đúng giờ'" 
-                                                  [class.status-late]="emp.dailyAttendance?.status === 'Đi trễ'"
-                                                  [class.status-working]="emp.dailyAttendance?.status === 'Đang làm việc'">
-                        {{ emp.dailyAttendance?.status }}
-                      </span>
-                    </ng-container>
-                    <span class="text-muted" *ngIf="!emp.dailyAttendance?.status">Chưa chấm công</span>
-                  </td>
-                  <td>
-                    <div class="td-actions justify-end">
-                      <button class="btn-icon-action text-danger" 
-                              *ngIf="emp.dailyAttendance?.attendanceId"
-                              (click)="deleteAttendanceRecord(emp.dailyAttendance!.attendanceId!, emp.fullName)" 
-                              title="Xóa chấm công ngày này">
-                        <span class="material-icons-round">delete_outline</span>
-                      </button>
-                      <span class="text-muted" *ngIf="!emp.dailyAttendance?.attendanceId">-</span>
-                    </div>
+                @for (emp of group.employees; track emp.employeeId; let i = $index) {
+                  <tr>
+                    <td>{{ i + 1 }}</td>
+                    <td class="font-weight-600">{{ emp.employeeCode }}</td>
+                    <td>
+                      {{ emp.fullName }}
+                      @switch (emp.positionId) {
+                        @case (1) { <span class="badge badge-light" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; margin-left: 8px; font-size: 0.7rem; border: 1px solid rgba(239, 68, 68, 0.2);">Giám Đốc</span> }
+                        @case (2) { <span class="badge badge-light" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; margin-left: 8px; font-size: 0.7rem; border: 1px solid rgba(245, 158, 11, 0.2);">Phó Giám Đốc</span> }
+                        @case (3) { <span class="badge badge-light" style="background: rgba(67, 24, 255, 0.1); color: var(--primary); margin-left: 8px; font-size: 0.7rem;">Trưởng Phòng</span> }
+                      }
+                    </td>
+                    <td>{{ emp.departmentName }}</td>
+                    <td>{{ emp.positionName }}</td>
+                    <td>
+                      @if (emp.dailyAttendance?.checkInTime) {
+                        <span class="font-weight-600">{{ emp.dailyAttendance?.checkInTime | slice:0:5 }}</span>
+                      } @else {
+                        <span class="text-muted">-</span>
+                      }
+                    </td>
+                    <td>
+                      @if (emp.dailyAttendance?.checkOutTime) {
+                        <span class="font-weight-600">{{ emp.dailyAttendance?.checkOutTime | slice:0:5 }}</span>
+                      } @else {
+                        <span class="text-muted">-</span>
+                      }
+                    </td>
+                    <td>
+                      <div style="display: flex; flex-direction: column; gap: 4px;">
+                        @if (emp.dailyAttendance?.checkInTime && emp.dailyAttendance?.checkOutTime && (emp.dailyAttendance?.lateMinutes || 0) > 0) {
+                          <span class="text-danger" style="white-space: nowrap;">
+                            <span class="material-icons-round" style="font-size: 0.9rem; vertical-align: bottom;">schedule</span> Trễ: {{ emp.dailyAttendance?.lateMinutes }}p
+                          </span>
+                        }
+                        @if (emp.dailyAttendance?.checkInTime && emp.dailyAttendance?.checkOutTime && (emp.dailyAttendance?.earlyLeaveMinutes || 0) > 0) {
+                          <span class="text-warning" style="white-space: nowrap;">
+                            <span class="material-icons-round" style="font-size: 0.9rem; vertical-align: bottom;">directions_run</span> Sớm: {{ emp.dailyAttendance?.earlyLeaveMinutes }}p
+                          </span>
+                        }
+                        @if (!emp.dailyAttendance?.checkInTime || !emp.dailyAttendance?.checkOutTime || (!(emp.dailyAttendance?.lateMinutes || 0) && !(emp.dailyAttendance?.earlyLeaveMinutes || 0))) {
+                          <span class="text-muted">-</span>
+                        }
+                      </div>
+                    </td>
+                    <td>
+                      @if (emp.dailyAttendance?.checkInTime && emp.dailyAttendance?.checkOutTime && (emp.dailyAttendance?.deductionAmount || 0) > 0) {
+                        <span class="text-danger font-weight-600">
+                          -{{ emp.dailyAttendance?.deductionAmount | number }} ₫
+                        </span>
+                      } @else {
+                        <span class="text-muted">-</span>
+                      }
+                    </td>
+                    <td>
+                      @if (emp.dailyAttendance?.status) {
+                        <span class="status-badge" [class.status-ontime]="emp.dailyAttendance?.status === 'Đúng giờ'" 
+                                                    [class.status-late]="emp.dailyAttendance?.status === 'Đi trễ'"
+                                                    [class.status-working]="emp.dailyAttendance?.status === 'Đang làm việc'">
+                          {{ emp.dailyAttendance?.status }}
+                        </span>
+                      } @else {
+                        <span class="text-muted">Chưa chấm công</span>
+                      }
+                    </td>
+                    <td>
+                      <div class="td-actions justify-end">
+                        @if (emp.dailyAttendance?.attendanceId) {
+                          <button class="btn-icon-action text-danger" 
+                                  (click)="deleteAttendanceRecord(emp.dailyAttendance!.attendanceId!, emp.fullName)" 
+                                  title="Xóa chấm công ngày này">
+                            <span class="material-icons-round">delete_outline</span>
+                          </button>
+                        } @else {
+                          <span class="text-muted">-</span>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+              @if (filteredAttendanceEmployees.length === 0) {
+                <tr>
+                  <td colspan="11" class="text-center py-5 text-muted">
+                    <span class="material-icons-round" style="font-size: 3rem; opacity: 0.2">event_busy</span>
+                    <div class="mt-2">Không có dữ liệu chấm công cho ngày này...</div>
                   </td>
                 </tr>
-              </ng-container>
-              <tr *ngIf="filteredAttendanceEmployees.length === 0">
-                <td colspan="11" class="text-center py-5 text-muted">
-                  <span class="material-icons-round" style="font-size: 3rem; opacity: 0.2">event_busy</span>
-                  <div class="mt-2">Không có dữ liệu chấm công cho ngày này...</div>
-                </td>
-              </tr>
+              }
             </tbody>
           </table>
         </div>
-      </ng-container>
+      }
     </div>
 
     <!-- Modal Thêm/Sửa Nhân Viên (chỉ dùng ở Tab Nhân viên) -->
-    <div class="modal-overlay" *ngIf="showModal">
-      <div class="modal-content" style="max-width: 600px;">
-        <div class="modal-header">
-          <h3>{{ isEditing ? 'Sửa Nhân Viên' : 'Thêm Nhân Viên' }}</h3>
-          <button class="btn-close" (click)="closeModal()">
-            <span class="material-icons-round">close</span>
-          </button>
-        </div>
-        
-        <form [formGroup]="empForm" (ngSubmit)="onSubmit()">
-          <div class="modal-body">
-            
-            <!-- Error messages từ backend -->
-            <div class="alert alert-danger mb-3" *ngIf="backendErrors.length > 0">
-              <ul class="mb-0 px-3">
-                <li *ngFor="let err of backendErrors">{{ err }}</li>
-              </ul>
-            </div>
-
-            <div class="row">
-              <div class="col-md-6 mb-3" *ngIf="isEditing">
-                <label>Mã NV (*)</label>
-                <input type="text" formControlName="employeeCode" class="form-control" [readonly]="true">
-              </div>
-              <div class="mb-3" [ngClass]="isEditing ? 'col-md-6' : 'col-md-12'">
-                <label>Họ và tên (*)</label>
-                <input type="text" formControlName="fullName" class="form-control">
-                <div class="error-message" *ngIf="empForm.get('fullName')?.invalid && empForm.get('fullName')?.touched">
-                  Họ tên không được để trống.
-                </div>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label>Email (*)</label>
-                <input type="email" formControlName="email" class="form-control">
-                <div class="error-message" *ngIf="empForm.get('email')?.invalid && empForm.get('email')?.touched">
-                  Email không đúng định dạng.
-                </div>
-              </div>
-              <div class="col-md-6 mb-3">
-                <label>Số điện thoại (*)</label>
-                <input type="text" formControlName="phone" class="form-control">
-                <div class="error-message" *ngIf="empForm.get('phone')?.invalid && empForm.get('phone')?.touched">
-                  Số điện thoại không hợp lệ.
-                </div>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label>Giới tính (*)</label>
-                <select formControlName="gender" class="form-control">
-                  <option value="Nam">Nam</option>
-                  <option value="Nữ">Nữ</option>
-                  <option value="Khác">Khác</option>
-                </select>
-              </div>
-              <div class="col-md-6 mb-3">
-                <label>Phòng ban (*)</label>
-                <select formControlName="departmentId" class="form-control">
-                  <option [value]="1">Phòng Kỹ Thuật</option>
-                  <option [value]="2">Phòng Nhân Sự</option>
-                  <option [value]="3">Phòng Marketing</option>
-                  <option [value]="4">Phòng Kế Toán</option>
-                  <option [value]="5">Phòng Kinh Doanh</option>
-                  <option [value]="6">Phòng Hành Chính</option>
-                </select>
-              </div>
-            </div>
-            
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label>Chức vụ (*)</label>
-                <select formControlName="positionId" class="form-control">
-                  <option [value]="1">Giám Đốc</option>
-                  <option [value]="2">Phó Giám Đốc</option>
-                  <option [value]="3">Trưởng Phòng</option>
-                  <option [value]="4">Phó Phòng</option>
-                  <option [value]="5">Nhân Viên</option>
-                </select>
-              </div>
-              <div class="col-md-6 mb-3">
-                <label>Mức lương (*)</label>
-                <input type="number" formControlName="salary" class="form-control">
-                <div class="error-message" *ngIf="empForm.get('salary')?.invalid && empForm.get('salary')?.touched">
-                  Mức lương không hợp lệ.
-                </div>
-              </div>
-            </div>
-
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn-outline" (click)="closeModal()">Hủy</button>
-            <button type="submit" class="btn-primary" [disabled]="empForm.invalid">
-              Lưu dữ liệu
+    @if (showModal) {
+      <div class="modal-overlay">
+        <div class="modal-content" style="max-width: 600px;">
+          <div class="modal-header">
+            <h3>{{ isEditing ? 'Sửa Nhân Viên' : 'Thêm Nhân Viên' }}</h3>
+            <button class="btn-close" (click)="closeModal()">
+              <span class="material-icons-round">close</span>
             </button>
           </div>
-        </form>
+          
+          <form [formGroup]="empForm" (ngSubmit)="onSubmit()">
+            <div class="modal-body">
+              
+              <!-- Error messages từ backend -->
+              @if (backendErrors.length > 0) {
+                <div class="alert alert-danger mb-3">
+                  <ul class="mb-0 px-3">
+                    @for (err of backendErrors; track err) {
+                      <li>{{ err }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <div class="row">
+                @if (isEditing) {
+                  <div class="col-md-6 mb-3">
+                    <label>Mã NV (*)</label>
+                    <input type="text" formControlName="employeeCode" class="form-control" [readonly]="true">
+                  </div>
+                }
+                <div class="mb-3" [class.col-md-6]="isEditing" [class.col-md-12]="!isEditing">
+                  <label>Họ và tên (*)</label>
+                  <input type="text" formControlName="fullName" class="form-control">
+                  @if (empForm.get('fullName')?.invalid && empForm.get('fullName')?.touched) {
+                    <div class="error-message">
+                      Họ tên không được để trống.
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label>Email (*)</label>
+                  <input type="email" formControlName="email" class="form-control">
+                  @if (empForm.get('email')?.invalid && empForm.get('email')?.touched) {
+                    <div class="error-message">
+                      Email không đúng định dạng.
+                    </div>
+                  }
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label>Số điện thoại (*)</label>
+                  <input type="text" formControlName="phone" class="form-control">
+                  @if (empForm.get('phone')?.invalid && empForm.get('phone')?.touched) {
+                    <div class="error-message">
+                      Số điện thoại không hợp lệ.
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label>Giới tính (*)</label>
+                  <select formControlName="gender" class="form-control">
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                    <option value="Khác">Khác</option>
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label>Phòng ban (*)</label>
+                  <select formControlName="departmentId" class="form-control">
+                    <option [value]="1">Phòng Kỹ Thuật</option>
+                    <option [value]="2">Phòng Nhân Sự</option>
+                    <option [value]="3">Phòng Marketing</option>
+                    <option [value]="4">Phòng Kế Toán</option>
+                    <option [value]="5">Phòng Kinh Doanh</option>
+                    <option [value]="6">Phòng Hành Chính</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label>Chức vụ (*)</label>
+                  <select formControlName="positionId" class="form-control">
+                    <option [value]="1">Giám Đốc</option>
+                    <option [value]="2">Phó Giám Đốc</option>
+                    <option [value]="3">Trưởng Phòng</option>
+                    <option [value]="4">Phó Phòng</option>
+                    <option [value]="5">Nhân Viên</option>
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label>Mức lương (*)</label>
+                  <input type="number" formControlName="salary" class="form-control">
+                  @if (empForm.get('salary')?.invalid && empForm.get('salary')?.touched) {
+                    <div class="error-message">
+                      Mức lương không hợp lệ.
+                    </div>
+                  }
+                </div>
+              </div>
+
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn-outline" (click)="closeModal()">Hủy</button>
+              <button type="submit" class="btn-primary" [disabled]="empForm.invalid">
+                Lưu dữ liệu
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    }
     <!-- Modal Thông tin đăng nhập sau khi tạo nhân viên -->
-    <div class="modal-overlay" *ngIf="showCredentialModal">
-      <div class="modal-content" style="max-width: 460px;">
-        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary), #5c4dff);">
-          <h3 style="color: white; display: flex; align-items: center; gap: 8px; font-size: 1.15rem; margin: 0;">
-            <span class="material-icons-round">how_to_reg</span>
-            Tạo nhân viên thành công!
-          </h3>
-          <button class="btn-close" style="color: white;" (click)="showCredentialModal = false">
-            <span class="material-icons-round">close</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div style="background: var(--bg-main); border-radius: 12px; padding: 20px; border: 1px solid var(--border);">
-            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 16px;">Hãy gửi thông tin đăng nhập dưới đây cho nhân viên mới:</p>
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-              <span class="material-icons-round" style="color: var(--primary);">person</span>
-              <div>
-                <div style="font-size: 0.8rem; color: var(--text-muted);">Tên đăng nhập</div>
-                <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); font-family: monospace;">{{ createdUsername }}</div>
+    @if (showCredentialModal) {
+      <div class="modal-overlay">
+        <div class="modal-content" style="max-width: 460px;">
+          <div class="modal-header" style="background: linear-gradient(135deg, var(--primary), #5c4dff);">
+            <h3 style="color: white; display: flex; align-items: center; gap: 8px; font-size: 1.15rem; margin: 0;">
+              <span class="material-icons-round">how_to_reg</span>
+              Tạo nhân viên thành công!
+            </h3>
+            <button class="btn-close" style="color: white;" (click)="showCredentialModal = false">
+              <span class="material-icons-round">close</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div style="background: var(--bg-main); border-radius: 12px; padding: 20px; border: 1px solid var(--border);">
+              <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 16px;">Hãy gửi thông tin đăng nhập dưới đây cho nhân viên mới:</p>
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                <span class="material-icons-round" style="color: var(--primary);">person</span>
+                <div>
+                  <div style="font-size: 0.8rem; color: var(--text-muted);">Tên đăng nhập</div>
+                  <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); font-family: monospace;">{{ createdUsername }}</div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <span class="material-icons-round" style="color: var(--primary);">lock</span>
+                <div>
+                  <div style="font-size: 0.8rem; color: var(--text-muted);">Mật khẩu mặc định</div>
+                  <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); font-family: monospace;">{{ createdPassword }}</div>
+                </div>
               </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <span class="material-icons-round" style="color: var(--primary);">lock</span>
-              <div>
-                <div style="font-size: 0.8rem; color: var(--text-muted);">Mật khẩu mặc định</div>
-                <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); font-family: monospace;">{{ createdPassword }}</div>
+            <div style="margin-top: 16px; padding: 12px 16px; background: rgba(255, 152, 0, 0.08); border-radius: 8px; border: 1px solid rgba(255, 152, 0, 0.2);">
+              <div style="display: flex; align-items: flex-start; gap: 8px;">
+                <span class="material-icons-round" style="color: #ed6c02; font-size: 1.1rem; flex-shrink: 0; margin-top: 2px;">warning</span>
+                <span style="font-size: 0.82rem; color: #ed6c02;">Nhắc nhân viên đổi mật khẩu sau khi đăng nhập lần đầu.</span>
               </div>
             </div>
           </div>
-          <div style="margin-top: 16px; padding: 12px 16px; background: rgba(255, 152, 0, 0.08); border-radius: 8px; border: 1px solid rgba(255, 152, 0, 0.2);">
-            <div style="display: flex; align-items: flex-start; gap: 8px;">
-              <span class="material-icons-round" style="color: #ed6c02; font-size: 1.1rem; flex-shrink: 0; margin-top: 2px;">warning</span>
-              <span style="font-size: 0.82rem; color: #ed6c02;">Nhắc nhân viên đổi mật khẩu sau khi đăng nhập lần đầu.</span>
-            </div>
+          <div class="modal-footer">
+            <button class="btn-primary" (click)="showCredentialModal = false" style="margin-left: auto;">
+              <span class="material-icons-round">check</span>
+              Đã hiểu
+            </button>
           </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-primary" (click)="showCredentialModal = false" style="margin-left: auto;">
-            <span class="material-icons-round">check</span>
-            Đã hiểu
-          </button>
         </div>
       </div>
-    </div>
+    }
   `,
   styles: [`
     .section-card {

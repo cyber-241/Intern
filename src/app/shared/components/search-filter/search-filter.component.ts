@@ -1,5 +1,4 @@
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 export interface FilterOption {
@@ -10,7 +9,7 @@ export interface FilterOption {
 @Component({
   selector: 'app-search-filter',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="search-filter-container">
       <div class="search-box">
@@ -23,17 +22,20 @@ export interface FilterOption {
         />
       </div>
       
-      <select 
-        *ngIf="filterOptions.length > 0"
-        class="filter-select" 
-        [(ngModel)]="selectedFilter" 
-        (ngModelChange)="onFilterChange($event)"
-      >
-        <option value="all">{{ allOptionLabel }}</option>
-        <option *ngFor="let option of filterOptions" [value]="option.value">
-          {{ option.label }}
-        </option>
-      </select>
+      @if (filterOptions.length > 0) {
+        <select 
+          class="filter-select" 
+          [(ngModel)]="selectedFilter" 
+          (ngModelChange)="onFilterChange($event)"
+        >
+          <option value="all">{{ allOptionLabel }}</option>
+          @for (option of filterOptions; track option.value) {
+            <option [value]="option.value">
+              {{ option.label }}
+            </option>
+          }
+        </select>
+      }
     </div>
   `,
   styles: [`

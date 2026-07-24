@@ -1,5 +1,4 @@
 import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from './services/auth.service';
@@ -8,7 +7,7 @@ import { NotificationService, Notification } from './services/notification.servi
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterModule, CommonModule, ReactiveFormsModule],
+  imports: [RouterModule, ReactiveFormsModule],
   templateUrl: './app.html',
   styleUrls: ['./app.css']
 })

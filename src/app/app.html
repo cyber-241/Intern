@@ -176,46 +176,54 @@
 }
 
 <!-- Change Password Modal -->
-<div class="modal-overlay" *ngIf="showChangePasswordModal">
-  <div class="modal-content" style="max-width: 450px;">
-    <div class="modal-header">
-      <h3>Đổi mật khẩu</h3>
-      <button class="btn-close" (click)="closeChangePasswordModal()">
-        <span class="material-icons-round">close</span>
-      </button>
+@if (showChangePasswordModal) {
+  <div class="modal-overlay">
+    <div class="modal-content" style="max-width: 450px;">
+      <div class="modal-header">
+        <h3>Đổi mật khẩu</h3>
+        <button class="btn-close" (click)="closeChangePasswordModal()">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+      
+      <form [formGroup]="changePasswordForm" (ngSubmit)="onChangePasswordSubmit()">
+        <div class="modal-body">
+          @if (passwordError) {
+            <div class="alert alert-danger mb-3">
+              {{ passwordError }}
+            </div>
+          }
+
+          <div class="form-group mb-3">
+            <label>Mật khẩu cũ (*)</label>
+            <input type="password" formControlName="oldPassword" class="form-control" placeholder="Nhập mật khẩu hiện tại">
+            @if (changePasswordForm.get('oldPassword')?.invalid && changePasswordForm.get('oldPassword')?.touched) {
+              <div class="text-danger small mt-1">
+                Vui lòng nhập mật khẩu cũ.
+              </div>
+            }
+          </div>
+
+          <div class="form-group mb-3">
+            <label>Mật khẩu mới (*)</label>
+            <input type="password" formControlName="newPassword" class="form-control" placeholder="Nhập mật khẩu mới">
+            @if (changePasswordForm.get('newPassword')?.invalid && changePasswordForm.get('newPassword')?.touched) {
+              <div class="text-danger small mt-1">
+                Mật khẩu mới phải có ít nhất 6 ký tự.
+              </div>
+            }
+          </div>
+
+          <div class="form-group mb-3">
+            <label>Xác nhận mật khẩu mới (*)</label>
+            <input type="password" formControlName="confirmPassword" class="form-control" placeholder="Xác nhận lại mật khẩu mới">
+          </div>
+        </div>
+        <div class="modal-footer text-right">
+          <button type="button" class="btn-secondary mr-2" (click)="closeChangePasswordModal()">Hủy</button>
+          <button type="submit" class="btn-primary" [disabled]="changePasswordForm.invalid">Lưu mật khẩu</button>
+        </div>
+      </form>
     </div>
-    
-    <form [formGroup]="changePasswordForm" (ngSubmit)="onChangePasswordSubmit()">
-      <div class="modal-body">
-        <div class="alert alert-danger mb-3" *ngIf="passwordError">
-          {{ passwordError }}
-        </div>
-
-        <div class="form-group mb-3">
-          <label>Mật khẩu cũ (*)</label>
-          <input type="password" formControlName="oldPassword" class="form-control" placeholder="Nhập mật khẩu hiện tại">
-          <div class="text-danger small mt-1" *ngIf="changePasswordForm.get('oldPassword')?.invalid && changePasswordForm.get('oldPassword')?.touched">
-            Vui lòng nhập mật khẩu cũ.
-          </div>
-        </div>
-
-        <div class="form-group mb-3">
-          <label>Mật khẩu mới (*)</label>
-          <input type="password" formControlName="newPassword" class="form-control" placeholder="Nhập mật khẩu mới">
-          <div class="text-danger small mt-1" *ngIf="changePasswordForm.get('newPassword')?.invalid && changePasswordForm.get('newPassword')?.touched">
-            Mật khẩu mới phải có ít nhất 6 ký tự.
-          </div>
-        </div>
-
-        <div class="form-group mb-3">
-          <label>Xác nhận mật khẩu mới (*)</label>
-          <input type="password" formControlName="confirmPassword" class="form-control" placeholder="Xác nhận lại mật khẩu mới">
-        </div>
-      </div>
-      <div class="modal-footer text-right">
-        <button type="button" class="btn-secondary mr-2" (click)="closeChangePasswordModal()">Hủy</button>
-        <button type="submit" class="btn-primary" [disabled]="changePasswordForm.invalid">Lưu mật khẩu</button>
-      </div>
-    </form>
   </div>
-</div>
+}
