@@ -60,6 +60,18 @@ export const routes: Routes = [
         title: 'Phòng ban',
         canActivate: [adminGuard]
       },
+      {
+        path: 'asset',
+        loadComponent: () => import('./pages/asset/asset.component').then(c => c.AssetComponent),
+        title: 'Tài sản',
+        canActivate: [adminGuard]
+      },
+      {
+        path: 'asset-category',
+        loadComponent: () => import('./pages/asset-category/asset-category.component').then(c => c.AssetCategoryComponent),
+        title: 'Danh mục tài sản',
+        canActivate: [adminGuard]
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
