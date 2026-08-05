@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { ApiResponse, EmployeeInfo } from '../models/data.model';
+import { ApiResponse, EmployeeInfo, Department } from '../models/data.model';
 
 @Injectable({
   providedIn: 'root'
@@ -12,11 +12,21 @@ export class EmployeeService {
   constructor(private http: HttpClient) { }
 
   /**
-   * Lấy danh sách tất cả nhân viên
+   * Lấy danh sách tất cả nhân viên (có the filter date)
    */
   getAll(date?: string): Observable<ApiResponse<EmployeeInfo[]>> {
     const url = date ? `${this.apiUrl}?date=${date}` : this.apiUrl;
     return this.http.get<ApiResponse<EmployeeInfo[]>>(url);
+  }
+
+  /**
+   * Tuần 11: Lấy danh sách nhân viên phân trang
+   */
+  getPaged(page: number, pageSize: number, search: string = '', departmentId: string = ''): Observable<ApiResponse<any>> {
+    let url = `${this.apiUrl}/paged?page=${page}&pageSize=${pageSize}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (departmentId) url += `&departmentId=${departmentId}`;
+    return this.http.get<ApiResponse<any>>(url);
   }
 
   /**
@@ -45,5 +55,12 @@ export class EmployeeService {
    */
   delete(id: number): Observable<ApiResponse<any>> {
     return this.http.delete<ApiResponse<any>>(`${this.apiUrl}/${id}`);
+  }
+
+  /**
+   * Lấy danh sách phòng ban (dynamic dropdown)
+   */
+  getDepartments(): Observable<ApiResponse<Department[]>> {
+    return this.http.get<ApiResponse<Department[]>>('http://localhost:5188/api/departments');
   }
 }

@@ -1,24 +1,18 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { DecimalPipe, SlicePipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { SearchFilterComponent } from './shared/components/search-filter/search-filter.component';
+import { PaginationComponent } from './shared/components/pagination/pagination.component';
 import { EmployeeService } from './services/employee.service';
-import { AttendanceService } from './services/attendance.service';
-import { EmployeeInfo } from './models/data.model';
+import { PositionService } from './services/position.service';
+import { EmployeeInfo, Department, Position } from './models/data.model';
 import { NotificationService } from './services/notification.service';
 import { HttpErrorResponse } from '@angular/common/http';
 
-/**
- * Tuần 2: Chuyển đổi từ *ngIf/*ngFor (structural directives) sang @if/@for/@switch (built-in control flow)
- * - Không cần import CommonModule nữa → import riêng DecimalPipe, SlicePipe cho pipes
- * - @if thay thế *ngIf
- * - @for thay thế *ngFor (bắt buộc có track expression)
- * - @switch thay thế chuỗi *ngIf cho positionId
- */
 @Component({
   selector: 'app-employee',
   standalone: true,
-  imports: [DecimalPipe, SlicePipe, ReactiveFormsModule, SearchFilterComponent],
+  imports: [DecimalPipe, ReactiveFormsModule, SearchFilterComponent, PaginationComponent],
   template: `
     <div class="section-card">
       <div class="section-header">
@@ -28,244 +22,95 @@ import { HttpErrorResponse } from '@angular/common/http';
         </div>
       </div>
 
-      <!-- Tab Navigation -->
-      <div class="tab-nav">
-        <button class="tab-btn" [class.active]="activeTab === 'employees'" (click)="switchTab('employees')">
-          <span class="material-icons-round">people</span>
-          Danh sách nhân viên
+      <div class="toolbar mb-4" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <button class="btn-primary" (click)="openAddModal()">
+          <span class="material-icons-round">person_add</span> Thêm Nhân Viên
         </button>
-        <button class="tab-btn" [class.active]="activeTab === 'attendance'" (click)="switchTab('attendance')">
-          <span class="material-icons-round">event_available</span>
-          Chấm công theo ngày
-        </button>
-      </div>
-
-      <!-- ============== TAB 1: QUẢN LÝ NHÂN VIÊN ============== -->
-      @if (activeTab === 'employees') {
-        <div class="toolbar mb-4" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-          <button class="btn-primary" (click)="openAddModal()">
-            <span class="material-icons-round">person_add</span> Thêm Nhân Viên
-          </button>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <select class="form-control" style="width: auto;" (change)="onDepartmentChange($event)">
+            <option value="">Tất cả phòng ban</option>
+            @for (dept of departments; track dept.departmentId) {
+              <option [value]="dept.departmentId">{{ dept.departmentName }}</option>
+            }
+          </select>
           <app-search-filter
             placeholder="Tìm theo mã, tên, email..."
             (searchChanged)="onSearch($event)"
           ></app-search-filter>
         </div>
+      </div>
 
-        <div class="table-responsive">
-          <table class="custom-table">
-            <thead>
+      <div class="table-responsive">
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th style="width: 50px">STT</th>
+              <th>Mã NV</th>
+              <th>Họ tên</th>
+              <th>Email</th>
+              <th>SĐT</th>
+              <th>Phòng ban</th>
+              <th>Chức vụ</th>
+              <th>Lương</th>
+              <th class="text-right">Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (emp of employees; track emp.employeeId; let i = $index) {
               <tr>
-                <th style="width: 50px">STT</th>
-                <th>Mã NV</th>
-                <th>Họ tên</th>
-                <th>Email</th>
-                <th>SĐT</th>
-                <th>Phòng ban</th>
-                <th>Chức vụ</th>
-                <th>Lương</th>
-                <th class="text-right">Hành động</th>
+                <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+                <td class="font-weight-600">{{ emp.employeeCode }}</td>
+                <td>
+                  {{ emp.fullName }}
+                  @if (emp.positionLevel >= 5) {
+                    <span class="badge badge-light" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; margin-left: 8px; font-size: 0.7rem; border: 1px solid rgba(239, 68, 68, 0.2);">{{ emp.positionName }}</span>
+                  } @else if (emp.positionLevel === 4) {
+                    <span class="badge badge-light" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; margin-left: 8px; font-size: 0.7rem; border: 1px solid rgba(245, 158, 11, 0.2);">{{ emp.positionName }}</span>
+                  } @else if (emp.positionLevel === 3) {
+                    <span class="badge badge-light" style="background: rgba(67, 24, 255, 0.1); color: var(--primary); margin-left: 8px; font-size: 0.7rem;">{{ emp.positionName }}</span>
+                  }
+                </td>
+                <td class="text-muted">{{ emp.email }}</td>
+                <td class="text-muted">{{ emp.phone || '-' }}</td>
+                <td>{{ emp.departmentName }}</td>
+                <td>{{ emp.positionName }}</td>
+                <td class="font-weight-600">{{ emp.salary | number }} ₫</td>
+                <td>
+                  <div class="td-actions justify-end">
+                    <button class="btn-icon-action text-info" (click)="openEditModal(emp)" title="Sửa thông tin">
+                      <span class="material-icons-round">edit</span>
+                    </button>
+                    <button class="btn-icon-action text-danger" (click)="deleteEmployee(emp.employeeId)" title="Xóa nhân viên">
+                      <span class="material-icons-round">delete_outline</span>
+                    </button>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              @for (group of groupedEmployees; track group.departmentName) {
-                <tr>
-                  <td colspan="9" class="font-weight-600 text-primary" style="background: var(--bg-hover);">
-                    <div style="display: flex; align-items: center;">
-                      <span class="material-icons-round" style="margin-right: 8px;">domain</span>
-                      {{ group.departmentName }}
-                    </div>
-                  </td>
-                </tr>
-                @for (emp of group.employees; track emp.employeeId; let i = $index) {
-                  <tr>
-                    <td>{{ i + 1 }}</td>
-                    <td class="font-weight-600">{{ emp.employeeCode }}</td>
-                    <td>
-                      {{ emp.fullName }}
-                      @switch (emp.positionId) {
-                        @case (1) { <span class="badge badge-light" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; margin-left: 8px; font-size: 0.7rem; border: 1px solid rgba(239, 68, 68, 0.2);">Giám Đốc</span> }
-                        @case (2) { <span class="badge badge-light" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; margin-left: 8px; font-size: 0.7rem; border: 1px solid rgba(245, 158, 11, 0.2);">Phó Giám Đốc</span> }
-                        @case (3) { <span class="badge badge-light" style="background: rgba(67, 24, 255, 0.1); color: var(--primary); margin-left: 8px; font-size: 0.7rem;">Trưởng Phòng</span> }
-                      }
-                    </td>
-                    <td class="text-muted">{{ emp.email }}</td>
-                    <td class="text-muted">{{ emp.phone || '-' }}</td>
-                    <td>{{ emp.departmentName }}</td>
-                    <td>{{ emp.positionName }}</td>
-                    <td class="font-weight-600">{{ emp.salary | number }} ₫</td>
-                    <td>
-                      <div class="td-actions justify-end">
-                        <button class="btn-icon-action text-info" (click)="openEditModal(emp)" title="Sửa thông tin">
-                          <span class="material-icons-round">edit</span>
-                        </button>
-                        <button class="btn-icon-action text-danger" (click)="deleteEmployee(emp.employeeId)" title="Xóa nhân viên">
-                          <span class="material-icons-round">delete_outline</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                }
-              }
-              @if (filteredEmployees.length === 0) {
-                <tr>
-                  <td colspan="9" class="text-center py-5 text-muted">
-                    <span class="material-icons-round" style="font-size: 3rem; opacity: 0.2">hourglass_empty</span>
-                    <div class="mt-2">Không tìm thấy dữ liệu...</div>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-
-      <!-- ============== TAB 2: CHẤM CÔNG THEO NGÀY ============== -->
-      @if (activeTab === 'attendance') {
-        <div class="toolbar mb-4" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span class="material-icons-round text-primary">calendar_today</span>
-            <label style="margin: 0; font-weight: 600;">Chọn ngày:</label>
-            <input type="date" class="form-control" style="width: auto; padding: 6px 12px; height: 38px;"
-                   [value]="filterDate" (change)="onDateChange($event)">
-          </div>
-          <app-search-filter
-            placeholder="Tìm theo mã, tên nhân viên..."
-            (searchChanged)="onSearchAttendance($event)"
-          ></app-search-filter>
-        </div>
-
-        <div class="attendance-date-info" style="margin-bottom: 16px;">
-          <span class="material-icons-round" style="color: var(--primary); vertical-align: middle;">info</span>
-          <span style="font-size: 0.9rem; color: var(--text-secondary); margin-left: 4px;">
-            Đang xem chấm công ngày <strong style="color: var(--text-primary);">{{ formatDisplayDate(filterDate) }}</strong>
-            — Giờ làm việc: <strong>08:00 - 17:30</strong>, Thứ 2 - Thứ 6
-          </span>
-        </div>
-
-        <div class="table-responsive">
-          <table class="custom-table">
-            <thead>
+            }
+            @if (employees.length === 0) {
               <tr>
-                <th style="width: 50px">STT</th>
-                <th>Mã NV</th>
-                <th>Họ tên</th>
-                <th>Phòng ban</th>
-                <th>Chức vụ</th>
-                <th>Giờ vào</th>
-                <th>Giờ ra</th>
-                <th>Vi phạm</th>
-                <th>Trừ lương</th>
-                <th>Trạng thái</th>
-                <th class="text-right">Xóa</th>
+                <td colspan="9" class="text-center py-5 text-muted">
+                  <span class="material-icons-round" style="font-size: 3rem; opacity: 0.2">hourglass_empty</span>
+                  <div class="mt-2">Không tìm thấy dữ liệu...</div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              @for (group of groupedAttendanceEmployees; track group.departmentName) {
-                <tr>
-                  <td colspan="11" class="font-weight-600 text-primary" style="background: var(--bg-hover);">
-                    <div style="display: flex; align-items: center;">
-                      <span class="material-icons-round" style="margin-right: 8px;">domain</span>
-                      {{ group.departmentName }}
-                    </div>
-                  </td>
-                </tr>
-                @for (emp of group.employees; track emp.employeeId; let i = $index) {
-                  <tr>
-                    <td>{{ i + 1 }}</td>
-                    <td class="font-weight-600">{{ emp.employeeCode }}</td>
-                    <td>
-                      {{ emp.fullName }}
-                      @switch (emp.positionId) {
-                        @case (1) { <span class="badge badge-light" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; margin-left: 8px; font-size: 0.7rem; border: 1px solid rgba(239, 68, 68, 0.2);">Giám Đốc</span> }
-                        @case (2) { <span class="badge badge-light" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; margin-left: 8px; font-size: 0.7rem; border: 1px solid rgba(245, 158, 11, 0.2);">Phó Giám Đốc</span> }
-                        @case (3) { <span class="badge badge-light" style="background: rgba(67, 24, 255, 0.1); color: var(--primary); margin-left: 8px; font-size: 0.7rem;">Trưởng Phòng</span> }
-                      }
-                    </td>
-                    <td>{{ emp.departmentName }}</td>
-                    <td>{{ emp.positionName }}</td>
-                    <td>
-                      @if (emp.dailyAttendance?.checkInTime) {
-                        <span class="font-weight-600">{{ emp.dailyAttendance?.checkInTime | slice:0:5 }}</span>
-                      } @else {
-                        <span class="text-muted">-</span>
-                      }
-                    </td>
-                    <td>
-                      @if (emp.dailyAttendance?.checkOutTime) {
-                        <span class="font-weight-600">{{ emp.dailyAttendance?.checkOutTime | slice:0:5 }}</span>
-                      } @else {
-                        <span class="text-muted">-</span>
-                      }
-                    </td>
-                    <td>
-                      <div style="display: flex; flex-direction: column; gap: 4px;">
-                        @if (emp.dailyAttendance?.checkInTime && emp.dailyAttendance?.checkOutTime && (emp.dailyAttendance?.lateMinutes || 0) > 0) {
-                          <span class="text-danger" style="white-space: nowrap;">
-                            <span class="material-icons-round" style="font-size: 0.9rem; vertical-align: bottom;">schedule</span> Trễ: {{ emp.dailyAttendance?.lateMinutes }}p
-                          </span>
-                        }
-                        @if (emp.dailyAttendance?.checkInTime && emp.dailyAttendance?.checkOutTime && (emp.dailyAttendance?.earlyLeaveMinutes || 0) > 0) {
-                          <span class="text-warning" style="white-space: nowrap;">
-                            <span class="material-icons-round" style="font-size: 0.9rem; vertical-align: bottom;">directions_run</span> Sớm: {{ emp.dailyAttendance?.earlyLeaveMinutes }}p
-                          </span>
-                        }
-                        @if (!emp.dailyAttendance?.checkInTime || !emp.dailyAttendance?.checkOutTime || (!(emp.dailyAttendance?.lateMinutes || 0) && !(emp.dailyAttendance?.earlyLeaveMinutes || 0))) {
-                          <span class="text-muted">-</span>
-                        }
-                      </div>
-                    </td>
-                    <td>
-                      @if (emp.dailyAttendance?.checkInTime && emp.dailyAttendance?.checkOutTime && (emp.dailyAttendance?.deductionAmount || 0) > 0) {
-                        <span class="text-danger font-weight-600">
-                          -{{ emp.dailyAttendance?.deductionAmount | number }} ₫
-                        </span>
-                      } @else {
-                        <span class="text-muted">-</span>
-                      }
-                    </td>
-                    <td>
-                      @if (emp.dailyAttendance?.status) {
-                        <span class="status-badge" [class.status-ontime]="emp.dailyAttendance?.status === 'Đúng giờ'" 
-                                                    [class.status-late]="emp.dailyAttendance?.status === 'Đi trễ'"
-                                                    [class.status-working]="emp.dailyAttendance?.status === 'Đang làm việc'">
-                          {{ emp.dailyAttendance?.status }}
-                        </span>
-                      } @else {
-                        <span class="text-muted">Chưa chấm công</span>
-                      }
-                    </td>
-                    <td>
-                      <div class="td-actions justify-end">
-                        @if (emp.dailyAttendance?.attendanceId) {
-                          <button class="btn-icon-action text-danger" 
-                                  (click)="deleteAttendanceRecord(emp.dailyAttendance!.attendanceId!, emp.fullName)" 
-                                  title="Xóa chấm công ngày này">
-                            <span class="material-icons-round">delete_outline</span>
-                          </button>
-                        } @else {
-                          <span class="text-muted">-</span>
-                        }
-                      </div>
-                    </td>
-                  </tr>
-                }
-              }
-              @if (filteredAttendanceEmployees.length === 0) {
-                <tr>
-                  <td colspan="11" class="text-center py-5 text-muted">
-                    <span class="material-icons-round" style="font-size: 3rem; opacity: 0.2">event_busy</span>
-                    <div class="mt-2">Không có dữ liệu chấm công cho ngày này...</div>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
+            }
+          </tbody>
+        </table>
+        
+        @if (totalItems > 0) {
+          <app-pagination
+            [currentPage]="currentPage"
+            [totalPages]="totalPages"
+            [totalItems]="totalItems"
+            [pageSize]="pageSize"
+            (pageChanged)="onPageChange($event)"
+          ></app-pagination>
+        }
+      </div>
     </div>
 
-    <!-- Modal Thêm/Sửa Nhân Viên (chỉ dùng ở Tab Nhân viên) -->
+    <!-- Modal Thêm/Sửa Nhân Viên -->
     @if (showModal) {
       <div class="modal-overlay">
         <div class="modal-content" style="max-width: 600px;">
@@ -301,9 +146,7 @@ import { HttpErrorResponse } from '@angular/common/http';
                   <label>Họ và tên (*)</label>
                   <input type="text" formControlName="fullName" class="form-control">
                   @if (empForm.get('fullName')?.invalid && empForm.get('fullName')?.touched) {
-                    <div class="error-message">
-                      Họ tên không được để trống.
-                    </div>
+                    <div class="error-message">Họ tên không được để trống.</div>
                   }
                 </div>
               </div>
@@ -313,18 +156,14 @@ import { HttpErrorResponse } from '@angular/common/http';
                   <label>Email (*)</label>
                   <input type="email" formControlName="email" class="form-control">
                   @if (empForm.get('email')?.invalid && empForm.get('email')?.touched) {
-                    <div class="error-message">
-                      Email không đúng định dạng.
-                    </div>
+                    <div class="error-message">Email không đúng định dạng.</div>
                   }
                 </div>
                 <div class="col-md-6 mb-3">
                   <label>Số điện thoại (*)</label>
                   <input type="text" formControlName="phone" class="form-control">
                   @if (empForm.get('phone')?.invalid && empForm.get('phone')?.touched) {
-                    <div class="error-message">
-                      Số điện thoại không hợp lệ.
-                    </div>
+                    <div class="error-message">Số điện thoại không hợp lệ.</div>
                   }
                 </div>
               </div>
@@ -341,12 +180,9 @@ import { HttpErrorResponse } from '@angular/common/http';
                 <div class="col-md-6 mb-3">
                   <label>Phòng ban (*)</label>
                   <select formControlName="departmentId" class="form-control">
-                    <option [value]="1">Phòng Kỹ Thuật</option>
-                    <option [value]="2">Phòng Nhân Sự</option>
-                    <option [value]="3">Phòng Marketing</option>
-                    <option [value]="4">Phòng Kế Toán</option>
-                    <option [value]="5">Phòng Kinh Doanh</option>
-                    <option [value]="6">Phòng Hành Chính</option>
+                    @for (dept of departments; track dept.departmentId) {
+                      <option [value]="dept.departmentId">{{ dept.departmentName }}</option>
+                    }
                   </select>
                 </div>
               </div>
@@ -355,20 +191,16 @@ import { HttpErrorResponse } from '@angular/common/http';
                 <div class="col-md-6 mb-3">
                   <label>Chức vụ (*)</label>
                   <select formControlName="positionId" class="form-control">
-                    <option [value]="1">Giám Đốc</option>
-                    <option [value]="2">Phó Giám Đốc</option>
-                    <option [value]="3">Trưởng Phòng</option>
-                    <option [value]="4">Phó Phòng</option>
-                    <option [value]="5">Nhân Viên</option>
+                    @for (pos of positions; track pos.positionId) {
+                      <option [value]="pos.positionId">{{ pos.positionName }}</option>
+                    }
                   </select>
                 </div>
                 <div class="col-md-6 mb-3">
                   <label>Mức lương (*)</label>
                   <input type="number" formControlName="salary" class="form-control">
                   @if (empForm.get('salary')?.invalid && empForm.get('salary')?.touched) {
-                    <div class="error-message">
-                      Mức lương không hợp lệ.
-                    </div>
+                    <div class="error-message">Mức lương không hợp lệ.</div>
                   }
                 </div>
               </div>
@@ -384,6 +216,7 @@ import { HttpErrorResponse } from '@angular/common/http';
         </div>
       </div>
     }
+
     <!-- Modal Thông tin đăng nhập sau khi tạo nhân viên -->
     @if (showCredentialModal) {
       <div class="modal-overlay">
@@ -433,29 +266,9 @@ import { HttpErrorResponse } from '@angular/common/http';
     }
   `,
   styles: [`
-    .section-card {
-      background: var(--bg-card);
-      border-radius: var(--radius-lg);
-      padding: 24px;
-      box-shadow: var(--shadow-sm);
-      border: 1px solid var(--border-light);
-    }
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--border);
-    }
-    .section-title {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
+    .section-card { background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .section-title { display: flex; align-items: center; gap: 10px; font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
     .text-primary { color: var(--primary); }
     .text-info { color: var(--info); }
     .text-danger { color: var(--danger); }
@@ -468,226 +281,53 @@ import { HttpErrorResponse } from '@angular/common/http';
     .py-5 { padding-top: 40px; padding-bottom: 40px; }
     .mb-4 { margin-bottom: 16px; }
 
-    /* Tab Navigation */
-    .tab-nav {
-      display: flex;
-      gap: 4px;
-      margin-bottom: 24px;
-      background: var(--bg-main);
-      border-radius: 12px;
-      padding: 4px;
-      border: 1px solid var(--border-light);
-    }
-    .tab-btn {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 12px 20px;
-      border: none;
-      border-radius: 10px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      font-family: inherit;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      background: transparent;
-      color: var(--text-secondary);
-    }
-    .tab-btn:hover {
-      background: var(--bg-hover);
-      color: var(--text-primary);
-    }
-    .tab-btn.active {
-      background: var(--primary);
-      color: white;
-      box-shadow: 0 4px 12px rgba(67, 24, 255, 0.3);
-    }
-    .tab-btn .material-icons-round {
-      font-size: 1.1rem;
-    }
+    .badge { padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 500; }
+    .badge-light { background: var(--bg-main); color: var(--text-secondary); border: 1px solid var(--border); }
 
-    /* Status Badges */
-    .status-badge {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-    }
-    .status-ontime {
-      background: rgba(34, 197, 94, 0.1);
-      color: #16a34a;
-    }
-    .status-late {
-      background: rgba(239, 68, 68, 0.1);
-      color: #ef4444;
-    }
-    .status-working {
-      background: rgba(59, 130, 246, 0.1);
-      color: #3b82f6;
-    }
+    .table-responsive { overflow-x: auto; border-radius: var(--radius-md); border: 1px solid var(--border); }
+    .custom-table { width: 100%; border-collapse: collapse; text-align: left; }
+    .custom-table th { background: var(--bg-hover); padding: 14px 16px; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+    .custom-table td { padding: 16px; font-size: 0.9rem; border-bottom: 1px solid var(--border-light); vertical-align: middle; }
+    .custom-table tbody tr { transition: all 0.2s; }
+    .custom-table tbody tr:hover { background: var(--bg-hover); }
+    .custom-table tbody tr:last-child td { border-bottom: none; }
 
-    .badge {
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      font-weight: 500;
-    }
-    .badge-light {
-      background: var(--bg-main);
-      color: var(--text-secondary);
-      border: 1px solid var(--border);
-    }
-
-    /* Table Styles */
-    .table-responsive {
-      overflow-x: auto;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border);
-    }
-    .custom-table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-    }
-    .custom-table th {
-      background: var(--bg-hover);
-      padding: 14px 16px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      border-bottom: 1px solid var(--border);
-    }
-    .custom-table td {
-      padding: 16px;
-      font-size: 0.9rem;
-      border-bottom: 1px solid var(--border-light);
-      vertical-align: middle;
-    }
-    .custom-table tbody tr {
-      transition: all 0.2s;
-    }
-    .custom-table tbody tr:hover {
-      background: var(--bg-hover);
-    }
-    .custom-table tbody tr:last-child td {
-      border-bottom: none;
-    }
-
-    /* Actions */
-    .td-actions {
-      display: flex;
-      gap: 8px;
-    }
-    .btn-icon-action {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-    }
+    .td-actions { display: flex; gap: 8px; }
+    .btn-icon-action { width: 32px; height: 32px; border-radius: 8px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
     .btn-icon-action .material-icons-round { font-size: 1.1rem; }
     .btn-icon-action.text-info:hover { background: var(--info-bg); }
     .btn-icon-action.text-danger:hover { background: var(--danger-bg); }
 
-    /* Modal Styles */
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 5, 39, 0.6);
-      backdrop-filter: blur(4px);
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      animation: fadeIn 0.2s ease;
-    }
-    .modal-content {
-      background: var(--bg-card);
-      border-radius: var(--radius-lg);
-      width: 100%;
-      box-shadow: var(--shadow-xl);
-      animation: slideUp 0.3s ease;
-      overflow: hidden;
-    }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 5, 39, 0.6); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease; }
+    .modal-content { background: var(--bg-card); border-radius: var(--radius-lg); width: 100%; box-shadow: var(--shadow-xl); animation: slideUp 0.3s ease; overflow: hidden; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     
-    .modal-header {
-      padding: 20px 24px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: var(--bg-hover);
-    }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--bg-hover); }
     .modal-header h3 { font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 0; }
-    .btn-close {
-      background: transparent; border: none; font-size: 1.2rem; cursor: pointer;
-      color: var(--text-muted); transition: color 0.2s;
-    }
+    .btn-close { background: transparent; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted); transition: color 0.2s; }
     .btn-close:hover { color: var(--danger); }
     
     .modal-body { padding: 24px; }
-    .modal-footer {
-      padding: 16px 24px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      justify-content: flex-end;
-      gap: 12px;
-      background: var(--bg-hover);
-    }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; background: var(--bg-hover); }
     
-    .form-control {
-      width: 100%;
-      padding: 10px 14px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      font-size: 0.9rem;
-      transition: all 0.2s;
-      outline: none;
-      font-family: inherit;
-      background: var(--bg-card);
-    }
-    .form-control:focus {
-      border-color: var(--primary-light);
-      box-shadow: 0 0 0 3px var(--primary-glow);
-    }
+    .form-control { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; transition: all 0.2s; outline: none; font-family: inherit; background: var(--bg-card); }
+    .form-control:focus { border-color: var(--primary-light); box-shadow: 0 0 0 3px var(--primary-glow); }
     .form-control[readonly] { background: var(--bg-main); color: var(--text-secondary); cursor: not-allowed; }
     label { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px; }
 
-    /* Buttons */
-    .btn-primary {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-      color: white; border: none; padding: 10px 20px; border-radius: 8px;
-      font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s;
-      display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(67, 24, 255, 0.2);
-    }
+    .btn-primary { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(67, 24, 255, 0.2); }
     .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(67, 24, 255, 0.3); }
     .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
     
-    .btn-outline {
-      background: transparent; color: var(--text-primary);
-      border: 1px solid var(--border); padding: 10px 20px; border-radius: 8px;
-      font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s;
-    }
+    .btn-outline { background: transparent; color: var(--text-primary); border: 1px solid var(--border); padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
     .btn-outline:hover { background: var(--bg-hover); border-color: var(--text-secondary); }
 
-    /* Grid Form */
     .row { display: flex; flex-wrap: wrap; margin-right: -10px; margin-left: -10px; }
     .col-md-6 { flex: 0 0 50%; max-width: 50%; padding-right: 10px; padding-left: 10px; box-sizing: border-box; }
+    .col-md-12 { flex: 0 0 100%; max-width: 100%; padding-right: 10px; padding-left: 10px; box-sizing: border-box; }
     .mb-3 { margin-bottom: 1.2rem; }
     
-    /* Errors */
     .error-message { color: var(--danger); font-size: 0.8rem; margin-top: 6px; font-weight: 500; }
     .alert-danger { background-color: var(--danger-bg); color: var(--danger); padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.2); }
     .mb-0 { margin-bottom: 0; }
@@ -695,67 +335,21 @@ import { HttpErrorResponse } from '@angular/common/http';
 })
 export class EmployeeComponent implements OnInit {
   private empService = inject(EmployeeService);
-  private attendanceService = inject(AttendanceService);
+  private positionService = inject(PositionService);
   private fb = inject(FormBuilder);
   private notif = inject(NotificationService);
 
-  // Tab state
-  activeTab: 'employees' | 'attendance' = 'employees';
-
-  // Employee list data
+  // Pagination state
   employees: EmployeeInfo[] = [];
-  attendanceEmployees: EmployeeInfo[] = [];
+  departments: Department[] = [];
+  positions: Position[] = [];
+  
   searchQuery: string = '';
-  searchAttendanceQuery: string = '';
-
-  // Employee tab - filtered & grouped
-  get filteredEmployees(): EmployeeInfo[] {
-    if (!this.searchQuery) return this.employees;
-    const lowerQuery = this.searchQuery.toLowerCase();
-    return this.employees.filter(e => 
-      e.fullName.toLowerCase().includes(lowerQuery) || 
-      e.employeeCode.toLowerCase().includes(lowerQuery) ||
-      e.email.toLowerCase().includes(lowerQuery)
-    );
-  }
-
-  get groupedEmployees(): { departmentName: string, employees: EmployeeInfo[] }[] {
-    const groups: { [key: string]: EmployeeInfo[] } = {};
-    for (const emp of this.filteredEmployees) {
-      if (!groups[emp.departmentName]) {
-        groups[emp.departmentName] = [];
-      }
-      groups[emp.departmentName].push(emp);
-    }
-    return Object.keys(groups).sort().map(key => ({
-      departmentName: key,
-      employees: groups[key]
-    }));
-  }
-
-  // Attendance tab - filtered & grouped
-  get filteredAttendanceEmployees(): EmployeeInfo[] {
-    if (!this.searchAttendanceQuery) return this.attendanceEmployees;
-    const lowerQuery = this.searchAttendanceQuery.toLowerCase();
-    return this.attendanceEmployees.filter(e => 
-      e.fullName.toLowerCase().includes(lowerQuery) || 
-      e.employeeCode.toLowerCase().includes(lowerQuery)
-    );
-  }
-
-  get groupedAttendanceEmployees(): { departmentName: string, employees: EmployeeInfo[] }[] {
-    const groups: { [key: string]: EmployeeInfo[] } = {};
-    for (const emp of this.filteredAttendanceEmployees) {
-      if (!groups[emp.departmentName]) {
-        groups[emp.departmentName] = [];
-      }
-      groups[emp.departmentName].push(emp);
-    }
-    return Object.keys(groups).sort().map(key => ({
-      departmentName: key,
-      employees: groups[key]
-    }));
-  }
+  departmentFilter: string = '';
+  currentPage: number = 1;
+  pageSize: number = 10;
+  totalItems: number = 0;
+  totalPages: number = 1;
 
   // Modal state
   showModal = false;
@@ -780,66 +374,62 @@ export class EmployeeComponent implements OnInit {
     isActive: [true]
   });
 
-  filterDate: string = new Date().toISOString().split('T')[0];
-
   ngOnInit() {
     this.loadEmployees();
+    this.loadDepartments();
+    this.loadPositions();
   }
 
-  switchTab(tab: 'employees' | 'attendance') {
-    this.activeTab = tab;
-    if (tab === 'employees') {
-      this.loadEmployees();
-    } else {
-      this.loadAttendanceData();
-    }
+  loadDepartments() {
+    this.empService.getDepartments().subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.departments = res.data;
+        }
+      }
+    });
+  }
+
+  loadPositions() {
+    this.positionService.getAll().subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.positions = res.data;
+        }
+      }
+    });
   }
 
   loadEmployees() {
-    // Load employee list WITHOUT date filter (no attendance data needed)
-    this.empService.getAll().subscribe({
+    // Calling the new Paged API (Will be implemented in backend)
+    this.empService.getPaged(this.currentPage, this.pageSize, this.searchQuery, this.departmentFilter).subscribe({
       next: (res) => {
-        if (res.success) {
-          this.employees = res.data;
+        if (res.success && res.data) {
+          this.employees = res.data.items;
+          this.totalItems = res.data.totalCount;
+          this.totalPages = res.data.totalPages;
         }
       },
       error: () => this.notif.error('Không thể tải dữ liệu nhân viên')
     });
   }
 
-  loadAttendanceData() {
-    // Load employee list WITH date filter (includes daily attendance)
-    this.empService.getAll(this.filterDate).subscribe({
-      next: (res) => {
-        if (res.success) {
-          this.attendanceEmployees = res.data;
-        }
-      },
-      error: () => this.notif.error('Không thể tải dữ liệu chấm công')
-    });
-  }
-
-  onDateChange(event: any) {
-    this.filterDate = event.target.value;
-    this.loadAttendanceData();
-  }
-
   onSearch(query: string) {
     this.searchQuery = query;
+    this.currentPage = 1;
+    this.loadEmployees();
   }
 
-  onSearchAttendance(query: string) {
-    this.searchAttendanceQuery = query;
+  onDepartmentChange(event: any) {
+    this.departmentFilter = event.target.value;
+    this.currentPage = 1;
+    this.loadEmployees();
   }
 
-  formatDisplayDate(dateStr: string): string {
-    if (!dateStr) return '';
-    const d = new Date(dateStr);
-    const days = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-    return `${days[d.getDay()]}, ${d.toLocaleDateString('vi-VN')}`;
+  onPageChange(page: number) {
+    this.currentPage = page;
+    this.loadEmployees();
   }
-
-  // ============ EMPLOYEE CRUD (Tab 1) ============
 
   openAddModal() {
     this.isEditing = false;
@@ -930,25 +520,6 @@ export class EmployeeComponent implements OnInit {
         error: (err: HttpErrorResponse) => {
           const msg = err.error?.message || 'Có lỗi xảy ra khi xóa';
           this.notif.error(`Lỗi Server: ${msg}`);
-        }
-      });
-    }
-  }
-
-  // ============ ATTENDANCE DELETE (Tab 2) ============
-
-  deleteAttendanceRecord(attendanceId: number, employeeName: string) {
-    if (confirm(`Bạn có chắc chắn muốn xóa bản ghi chấm công ngày ${this.formatDisplayDate(this.filterDate)} của ${employeeName}?`)) {
-      this.attendanceService.delete(attendanceId).subscribe({
-        next: (res) => {
-          if (res.success) {
-            this.notif.success(`Đã xóa chấm công của ${employeeName}`);
-            this.loadAttendanceData();
-          }
-        },
-        error: (err: HttpErrorResponse) => {
-          const msg = err.error?.message || 'Có lỗi xảy ra khi xóa chấm công';
-          this.notif.error(msg);
         }
       });
     }

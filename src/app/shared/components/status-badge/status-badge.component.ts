@@ -1,12 +1,10 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-status-badge',
   standalone: true,
-  imports: [CommonModule],
   template: `
-    <span class="status-badge" [ngClass]="getBadgeClass()" [ngStyle]="getBadgeStyle()">
+    <span class="status-badge" [class]="getBadgeClass()">
       {{ status }}
     </span>
   `,
@@ -18,17 +16,26 @@ import { CommonModule } from '@angular/common';
       font-weight: 600;
       display: inline-block;
     }
-    .status-badge.done {
-      background: var(--success-bg, #d1fae5);
-      color: var(--success, #059669);
+    .status-badge.status-success {
+      background: rgba(34, 197, 94, 0.1);
+      color: #16a34a;
     }
-    .status-badge.todo {
-      background: var(--danger-bg, #fee2e2);
-      color: var(--danger, #dc2626);
+    .status-badge.status-danger {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
     }
-    .status-badge.doing {
-      background: var(--info-bg, #dbeafe);
-      color: var(--info, #2563eb);
+    .status-badge.status-warning {
+      background: rgba(245, 158, 11, 0.1);
+      color: #d97706;
+    }
+    .status-badge.status-info {
+      background: rgba(59, 130, 246, 0.1);
+      color: #3b82f6;
+    }
+    .status-badge.status-default {
+      background: var(--bg-main);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
     }
   `]
 })
@@ -38,20 +45,26 @@ export class StatusBadgeComponent {
   getBadgeClass(): string {
     switch (this.status) {
       case 'Đúng giờ':
-        return 'done';
+      case 'Hoàn thành':
+      case 'Đã duyệt':
+      case 'Hoạt động':
+        return 'status-success';
       case 'Đi trễ':
-        return 'todo';
+      case 'Nghỉ phép':
+      case 'Từ chối':
+      case 'Ngừng hoạt động':
+      case 'Vắng mặt':
+        return 'status-danger';
       case 'Đang làm việc':
-        return 'doing';
+      case 'Đang chờ':
+      case 'Đang xử lý':
+        return 'status-info';
+      case 'Về sớm':
+      case 'Tạm ngưng':
+      case 'Cảnh báo':
+        return 'status-warning';
       default:
-        return '';
+        return 'status-default';
     }
-  }
-
-  getBadgeStyle(): any {
-    if (this.status === 'Đang làm việc') {
-      return { 'background': 'var(--info-bg)', 'color': 'var(--info)' };
-    }
-    return {};
   }
 }

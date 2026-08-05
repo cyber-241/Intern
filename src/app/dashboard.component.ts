@@ -39,7 +39,7 @@ const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
       <!-- GIAO DIỆN DÀNH CHO ADMIN -->
       <div class="admin-dashboard-container">
         <div class="welcome-banner" style="background: linear-gradient(135deg, var(--primary), #5c4dff); color: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem;">
-          <h2>Bảng Điều Khiển Dành Cho Ban Quản Trị</h2>
+          <h2>Dashboard Dành Cho Ban Quản Trị</h2>
           <p>Xin chào {{ authService.currentUser()?.fullName }}, chúc bạn một ngày làm việc hiệu quả!</p>
         </div>
 
