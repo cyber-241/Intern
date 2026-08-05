@@ -18,6 +18,7 @@ export interface EmployeeInfo {
   departmentName: string;
   positionId: number;
   positionName: string;
+  positionLevel: number;
   salary: number;
   hireDate: string;
   isActive: boolean;
@@ -100,3 +101,13 @@ export interface Department {
   phone: string | null;
   isActive: boolean;
 }
+
+export interface Position {
+  positionId: number;
+  positionCode: string;
+  positionName: string;
+  description: string | null;
+  baseSalary: number;
+  level: number;
+  isActive: boolean;
+}

@@ -1,9 +1,10 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
+import { AdminLayoutComponent } from './layouts/admin-layout/admin-layout.component';
 
 /**
- * App Routes - Week 6: Thêm Register + Forgot Password
+ * App Routes - Week 11: Sử dụng AdminLayoutComponent
  */
 export const routes: Routes = [
   {
@@ -27,22 +28,40 @@ export const routes: Routes = [
       import('./forgot-password.component').then(m => m.ForgotPasswordComponent)
   },
   {
-    path: 'dashboard',
-    loadComponent: () =>
-      import('./dashboard.component').then(m => m.DashboardComponent),
-    canActivate: [authGuard]
-  },
-  {
-    path: 'history',
-    loadComponent: () =>
-      import('./history.component').then(m => m.HistoryComponent),
-    canActivate: [authGuard]
-  },
-  {
-    path: 'employee',
-    loadComponent: () =>
-      import('./employee.component').then(m => m.EmployeeComponent),
-    canActivate: [authGuard] // Yêu cầu đăng nhập, thực tế tuần sau sẽ phân quyền admin
+    path: '',
+    component: AdminLayoutComponent,
+    canActivate: [authGuard],
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./dashboard.component').then(m => m.DashboardComponent)
+      },
+      {
+        path: 'history',
+        loadComponent: () =>
+          import('./history.component').then(m => m.HistoryComponent)
+      },
+      {
+        path: 'employee',
+        loadComponent: () =>
+          import('./employee.component').then(m => m.EmployeeComponent),
+        canActivate: [adminGuard]
+      },
+      {
+        path: 'attendance',
+        loadComponent: () => import('./pages/attendance/attendance.component').then(c => c.AttendanceComponent),
+        title: 'Chấm công',
+        canActivate: [adminGuard]
+      },
+      {
+        path: 'department',
+        loadComponent: () => import('./pages/department/department.component').then(c => c.DepartmentComponent),
+        title: 'Phòng ban',
+        canActivate: [adminGuard]
+      },
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
+    ]
   },
   {
     path: '**',
