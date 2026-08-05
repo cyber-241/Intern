@@ -48,20 +48,24 @@ export class StatusBadgeComponent {
       case 'Hoàn thành':
       case 'Đã duyệt':
       case 'Hoạt động':
+      case 'Sẵn sàng':
         return 'status-success';
       case 'Đi trễ':
       case 'Nghỉ phép':
       case 'Từ chối':
       case 'Ngừng hoạt động':
       case 'Vắng mặt':
+      case 'Thanh lý':
         return 'status-danger';
       case 'Đang làm việc':
       case 'Đang chờ':
       case 'Đang xử lý':
+      case 'Đang sử dụng':
         return 'status-info';
       case 'Về sớm':
       case 'Tạm ngưng':
       case 'Cảnh báo':
+      case 'Bảo trì':
         return 'status-warning';
       default:
         return 'status-default';

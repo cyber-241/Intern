@@ -62,6 +62,14 @@ import { NotificationService } from '../../services/notification.service';
               <span class="material-icons-round">domain</span>
               @if (!sidebarCollapsed()) { <span>Phòng ban</span> }
             </a>
+            <a routerLink="/asset" routerLinkActive="active">
+              <span class="material-icons-round">inventory_2</span>
+              @if (!sidebarCollapsed()) { <span>Tài sản</span> }
+            </a>
+            <a routerLink="/asset-category" routerLinkActive="active">
+              <span class="material-icons-round">category</span>
+              @if (!sidebarCollapsed()) { <span>Danh mục TS</span> }
+            </a>
           }
 
           @if (!authService.isAdmin()) {

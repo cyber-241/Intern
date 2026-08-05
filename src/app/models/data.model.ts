@@ -110,4 +110,32 @@ export interface Position {
   baseSalary: number;
   level: number;
   isActive: boolean;
+}
+
+// Tuần 12: Quản lý Tài sản cấp phát
+export interface AssetCategory {
+  categoryId: number;
+  categoryCode: string;
+  categoryName: string;
+  description: string | null;
+  isActive: boolean;
+  assetCount?: number;
+}
+
+export interface Asset {
+  assetId: number;
+  assetCode: string;
+  assetName: string;
+  description: string | null;
+  categoryId: number;
+  categoryName: string | null;
+  assignedToEmployeeId: number | null;
+  assignedEmployeeName: string | null;
+  assignedEmployeeCode: string | null;
+  serialNumber: string | null;
+  purchasePrice: number;
+  purchaseDate: string | null;
+  status: string;
+  imageUrl: string | null;
+  isActive: boolean;
 }
