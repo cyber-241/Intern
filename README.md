@@ -25,3 +25,5 @@ This is the frontend application for SimpleERP, built using Angular (Standalone 
 3. Navigate to `http://localhost:4200/`.
 
 Ensure the SimpleERP.API backend is running at `http://localhost:5188` to fetch data.
+
+[feature-a] D?ng này ðý?c thêm t? nhánh A
