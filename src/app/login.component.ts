@@ -326,8 +326,6 @@ import { AuthService } from './services/auth.service';
 
         <div class="login-links">
           <a class="login-link" routerLink="/forgot-password">Quên mật khẩu?</a>
-          <span class="login-link-divider">|</span>
-          <a class="login-link" routerLink="/register">Đăng ký tài khoản</a>
         </div>
 
         <div class="login-footer">

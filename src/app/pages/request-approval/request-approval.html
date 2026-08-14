@@ -1,0 +1,131 @@
+<div class="section-card">
+  <div class="section-header">
+    <div class="section-title">
+      <span class="material-icons-round text-primary">rule</span>
+      Phê duyệt Yêu cầu
+    </div>
+  </div>
+
+  <!-- Bộ lọc & Tìm kiếm -->
+  <div class="toolbar mb-4" style="display: flex; gap: 12px; flex-wrap: wrap;">
+    <input type="text" class="form-control" style="max-width: 300px;" placeholder="Tìm kiếm theo mã, tiêu đề, tên nhân viên..." [(ngModel)]="searchQuery" (ngModelChange)="searchSubject.next($event)">
+    
+    <select class="form-control" style="max-width: 200px;" [(ngModel)]="filterType" (change)="onSearch()">
+      <option value="">Tất cả loại yêu cầu</option>
+      <option value="Leave">Nghỉ phép</option>
+      <option value="AssetFix">Báo hỏng máy</option>
+      <option value="AssetNew">Xin cấp máy mới</option>
+    </select>
+    
+    <select class="form-control" style="max-width: 200px;" [(ngModel)]="filterStatus" (change)="onSearch()">
+      <option value="">Tất cả trạng thái</option>
+      <option value="Pending">Chờ duyệt</option>
+      <option value="Approved">Đã duyệt</option>
+      <option value="Rejected">Từ chối</option>
+    </select>
+  </div>
+
+  <div style="display: flex; gap: 24px; align-items: flex-start;">
+    
+    <!-- Danh sách (chiếm 100% nếu ko mở detail, chiếm 60% nếu mở detail) -->
+    <div style="flex: 1; min-width: 0;">
+      <div class="table-responsive">
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th>Mã YC</th>
+              <th>Người Y/C</th>
+              <th>Loại</th>
+              <th>Tiêu đề</th>
+              <th>Trạng thái</th>
+              <th>Ngày tạo</th>
+              <th class="text-center">Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of requests; track item.requestId) {
+              <tr [class.table-active]="selectedRequest?.requestId === item.requestId">
+                <td class="font-weight-600">{{ item.requestCode }}</td>
+                <td>
+                  <div class="font-weight-600 text-primary">{{ item.employeeName }}</div>
+                  <small class="text-muted">{{ item.employeeCode }}</small>
+                </td>
+                <td><span class="badge {{ getTypeBadge(item.requestType) }}">{{ getTypeName(item.requestType) }}</span></td>
+                <td>{{ item.title }}</td>
+                <td><span class="badge {{ getStatusBadge(item.status) }}">{{ item.status }}</span></td>
+                <td>{{ item.createdAt | date:'dd/MM/yyyy' }}</td>
+                <td>
+                  <div class="td-actions" style="display: flex; gap: 8px; justify-content: center; align-items: center;">
+                    <button class="btn-icon-action text-info" (click)="openApprovalModal(item)">
+                      <span class="material-icons-round">visibility</span>
+                    </button>
+                    @if (item.status === 'Pending') {
+                      <button class="btn-icon-action text-success" (click)="selectedRequest = item; updateStatus('Approved')">
+                        <span class="material-icons-round">check</span>
+                      </button>
+                      <button class="btn-icon-action text-danger" (click)="selectedRequest = item; reviewNote = 'Từ chối'; updateStatus('Rejected')">
+                        <span class="material-icons-round">close</span>
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+            @if (requests.length === 0) {
+              <tr>
+                <td colspan="7" class="text-center py-5 text-muted">
+                  <span class="material-icons-round" style="font-size: 3rem; opacity: 0.2">inbox</span>
+                  <div class="mt-2">Không tìm thấy yêu cầu nào.</div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <!-- Phân trang -->
+        @if (totalPages > 1) {
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+            <span class="text-muted small">Hiển thị trang {{ currentPage }} / {{ totalPages }} (Tổng {{ totalCount }} dòng)</span>
+            <div style="display: flex; gap: 4px;">
+              <button class="btn-secondary" style="padding: 4px 10px;" [disabled]="currentPage === 1" (click)="onPageChange(currentPage - 1)">Trước</button>
+              @for (p of [].constructor(totalPages); track $index) {
+                <button class="btn-secondary" style="padding: 4px 10px;" 
+                  [style.background]="currentPage === $index + 1 ? 'var(--primary-light)' : ''"
+                  [style.color]="currentPage === $index + 1 ? 'white' : ''"
+                  (click)="onPageChange($index + 1)">{{ $index + 1 }}</button>
+              }
+              <button class="btn-secondary" style="padding: 4px 10px;" [disabled]="currentPage === totalPages" (click)="onPageChange(currentPage + 1)">Sau</button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+
+  </div>
+</div>
+
+@if (modalState.isOpen) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 500px; padding: 24px; position: relative;">
+      <h3 style="margin-bottom: 16px; font-weight: 600;">{{ modalState.title }}</h3>
+      <p style="margin-bottom: 20px; white-space: pre-wrap;">{{ modalState.message }}</p>
+      
+      @if (modalState.description) {
+        <div style="background: var(--bg-hover); padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+          <strong style="display: block; margin-bottom: 8px;">Lý do / Mô tả chi tiết:</strong>
+          <span style="white-space: pre-wrap; color: var(--text-secondary);">{{ modalState.description }}</span>
+        </div>
+      }
+
+      <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+        @if (modalState.isConfirm) {
+          <button class="btn-secondary" style="padding: 8px 16px;" (click)="closeModal()">Hủy</button>
+          <button class="btn-primary" style="padding: 8px 16px;" (click)="confirmModal()">Xác nhận</button>
+        } @else {
+          <button class="btn-primary" style="padding: 8px 16px;" (click)="closeModal()">Đóng</button>
+        }
+      </div>
+    </div>
+  </div>
+}

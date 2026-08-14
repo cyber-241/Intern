@@ -56,13 +56,13 @@ import { HttpClient } from '@angular/common/http';
     .forgot-brand-icon {
       width: 56px;
       height: 56px;
-      background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+      background: linear-gradient(135deg, #4318ff 0%, #7b61ff 100%);
       border-radius: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
       margin: 0 auto 16px;
-      box-shadow: 0 8px 24px rgba(245, 158, 11, 0.35);
+      box-shadow: 0 8px 24px rgba(67, 24, 255, 0.35);
     }
 
     .forgot-brand-icon .material-icons-round { font-size: 1.8rem; color: white; }
@@ -91,13 +91,13 @@ import { HttpClient } from '@angular/common/http';
 
     .forgot-btn {
       width: 100%; padding: 14px;
-      background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+      background: linear-gradient(135deg, #4318ff 0%, #7b61ff 100%);
       color: white; border: none; border-radius: 12px;
       font-size: 0.95rem; font-weight: 700; font-family: 'Inter', sans-serif;
       cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-      transition: 0.25s ease; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3); margin-top: 8px;
+      transition: 0.25s ease; box-shadow: 0 4px 16px rgba(67, 24, 255, 0.3); margin-top: 8px;
     }
-    .forgot-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4); }
+    .forgot-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(67, 24, 255, 0.4); }
     .forgot-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
     .msg-error {
