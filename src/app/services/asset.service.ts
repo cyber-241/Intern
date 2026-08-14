@@ -10,11 +10,12 @@ export class AssetService {
   private http = inject(HttpClient);
   private apiUrl = 'http://localhost:5188/api/assets';
 
-  getPaged(page: number, pageSize: number, search: string = '', categoryId?: number, status?: string): Observable<ApiResponse<any>> {
+  getPaged(page: number, pageSize: number, search: string = '', categoryId?: number, status?: string, employeeId?: number): Observable<ApiResponse<any>> {
     let url = `${this.apiUrl}/paged?page=${page}&pageSize=${pageSize}`;
     if (search) url += `&search=${encodeURIComponent(search)}`;
     if (categoryId) url += `&categoryId=${categoryId}`;
     if (status) url += `&status=${encodeURIComponent(status)}`;
+    if (employeeId) url += `&employeeId=${employeeId}`;
     return this.http.get<ApiResponse<any>>(url);
   }
 

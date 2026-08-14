@@ -116,6 +116,7 @@ export class AttendanceStore {
   loadRecords(): void {
     this._isLoading.set(true);
     this._error.set(null);
+    this._records.set([]); // Xóa dữ liệu cũ trước khi tải dữ liệu mới để tránh rò rỉ dữ liệu
 
     this.attendanceService.getAll().subscribe({
       next: (response) => {
@@ -127,6 +128,7 @@ export class AttendanceStore {
       error: (err) => {
         this._error.set('Lỗi khi tải dữ liệu chấm công');
         this._isLoading.set(false);
+        this._records.set([]); // Xóa dữ liệu nếu bị lỗi (vd: 403 Forbidden)
       }
     });
   }

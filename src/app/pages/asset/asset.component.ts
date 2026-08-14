@@ -200,10 +200,16 @@ import { HttpErrorResponse } from '@angular/common/http';
                   <input type="date" formControlName="purchaseDate" class="form-control">
                 </div>
                 <div class="mb-3 form-col">
-                  <label>Cấp phát cho NV (ID)</label>
-                  <input type="number" formControlName="assignedToEmployeeId" class="form-control" placeholder="Để trống nếu chưa cấp phát">
+                  <label>Cấp phát cho nhân viên</label>
+                  <select formControlName="assignedToEmployeeId" class="form-control">
+                    <option [ngValue]="null">-- Chưa cấp phát --</option>
+                    @for (emp of allEmployees; track emp.employeeId) {
+                      <option [ngValue]="emp.employeeId">{{ emp.employeeCode }} - {{ emp.fullName }}</option>
+                    }
+                  </select>
                 </div>
               </div>
+
 
               <div class="mb-3">
                 <label>Mô tả</label>
@@ -332,11 +338,13 @@ import { HttpErrorResponse } from '@angular/common/http';
 export class AssetComponent implements OnInit {
   private assetService = inject(AssetService);
   private catService = inject(AssetCategoryService);
+  private empService = inject(EmployeeService);
   private fb = inject(FormBuilder);
   private notif = inject(NotificationService);
 
   assets: Asset[] = [];
   allCategories: AssetCategory[] = [];
+  allEmployees: any[] = [];
 
   // Pagination & Filter
   searchQuery = '';
@@ -373,6 +381,7 @@ export class AssetComponent implements OnInit {
 
   ngOnInit() {
     this.loadCategories();
+    this.loadEmployees();
     this.loadAssets();
   }
 
@@ -380,6 +389,14 @@ export class AssetComponent implements OnInit {
     this.catService.getAll().subscribe({
       next: (res) => {
         if (res.success) this.allCategories = res.data;
+      }
+    });
+  }
+
+  loadEmployees() {
+    this.empService.getAll().subscribe({
+      next: (res) => {
+        if (res.success) this.allEmployees = res.data;
       }
     });
   }

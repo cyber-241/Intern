@@ -65,10 +65,10 @@ const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
           <div class="stat-card warning">
             <div class="stat-card-header">
               <div class="stat-icon warning" style="color: #ed6c02; background: #fff4e5;"><span class="material-icons-round">directions_run</span></div>
-              <span class="stat-label">Nghỉ Phép/Vắng</span>
+              <span class="stat-label">Nghỉ phép</span>
             </div>
             <div class="stat-value">{{ absentEmployees() }}</div>
-            <div class="stat-desc">Đã duyệt và chưa duyệt</div>
+            <div class="stat-desc">Vắng</div>
           </div>
         </div>
       </div>
@@ -189,6 +189,8 @@ const WORK_END_IN_MINUTES = WORK_END_HOUR * 60 + WORK_END_MINUTE;
                       @switch (record.status) {
                         @case ('Đúng giờ') { <span class="status-badge done">Đúng giờ</span> }
                         @case ('Đi trễ') { <span class="status-badge todo">Đi trễ</span> }
+                        @case ('Về sớm') { <span class="status-badge warning">Về sớm</span> }
+                        @case ('Cảnh báo') { <span class="status-badge warning">Cảnh báo</span> }
                         @case ('Đang làm việc') { <span class="status-badge doing" style="background: var(--info-bg); color: var(--info);">Đang làm việc</span> }
                         @default { <span class="status-badge">{{ record.status }}</span> }
                       }

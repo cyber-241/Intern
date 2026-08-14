@@ -5,17 +5,18 @@ import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../services/notification.service';
 
 /**
- * Admin Layout — Tuần 11: Sidebar tĩnh + Topbar
+ * Admin Layout — Tuần 14: Role-Based Menu + Responsive Mobile
  * Layout chính cho các trang sau khi đăng nhập
- * Sidebar dark (gradient tím/đen) chứa menu navigation
+ * Sidebar dark (gradient tím/đen) chứa menu navigation (ẩn/hiện theo role)
  * Topbar chứa thông tin user + clock
+ * Mobile: Sidebar overlay + backdrop
  */
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
   imports: [RouterModule, ReactiveFormsModule],
   template: `
-    <div class="admin-layout">
+    <div class="admin-layout" [class.mobile-sidebar-open]="mobileSidebarOpen()">
       <!-- ===== SIDEBAR ===== -->
       <aside class="sidebar" [class.collapsed]="sidebarCollapsed()">
         <!-- Brand -->
@@ -49,42 +50,58 @@ import { NotificationService } from '../../services/notification.service';
             @if (!sidebarCollapsed()) { <span>Dashboard</span> }
           </a>
 
+          <!-- Tuần 14: Menu quản trị — Chỉ Admin -->
           @if (authService.isAdmin()) {
-            <a routerLink="/employee" routerLinkActive="active">
+            <a routerLink="/employee" routerLinkActive="active" (click)="closeMobileSidebar()">
               <span class="material-icons-round">people</span>
               @if (!sidebarCollapsed()) { <span>Quản lý nhân viên</span> }
             </a>
-            <a routerLink="/attendance" routerLinkActive="active">
+            <a routerLink="/attendance" routerLinkActive="active" (click)="closeMobileSidebar()">
               <span class="material-icons-round">event_available</span>
               @if (!sidebarCollapsed()) { <span>Chấm công</span> }
             </a>
-            <a routerLink="/department" routerLinkActive="active">
+            <a routerLink="/department" routerLinkActive="active" (click)="closeMobileSidebar()">
               <span class="material-icons-round">domain</span>
               @if (!sidebarCollapsed()) { <span>Phòng ban</span> }
             </a>
-            <a routerLink="/asset" routerLinkActive="active">
+            <a routerLink="/asset" routerLinkActive="active" (click)="closeMobileSidebar()">
               <span class="material-icons-round">inventory_2</span>
               @if (!sidebarCollapsed()) { <span>Tài sản</span> }
             </a>
-            <a routerLink="/asset-category" routerLinkActive="active">
+            <a routerLink="/asset-category" routerLinkActive="active" (click)="closeMobileSidebar()">
               <span class="material-icons-round">category</span>
               @if (!sidebarCollapsed()) { <span>Danh mục TS</span> }
             </a>
           }
 
+          <!-- Tuần 14: Duyệt yêu cầu — Admin + Manager -->
+          @if (authService.isManagerOrAdmin()) {
+            <a routerLink="/request-approval" routerLinkActive="active" (click)="closeMobileSidebar()">
+              <span class="material-icons-round">rule</span>
+              @if (!sidebarCollapsed()) { <span>Duyệt yêu cầu</span> }
+            </a>
+          }
+
+          <!-- Tuần 14: Lịch sử chấm công — Employee + Manager (không phải Admin) -->
           @if (!authService.isAdmin()) {
-            <a routerLink="/history" routerLinkActive="active">
+            <a routerLink="/history" routerLinkActive="active" (click)="closeMobileSidebar()">
               <span class="material-icons-round">history</span>
               @if (!sidebarCollapsed()) { <span>Lịch sử chấm công</span> }
             </a>
           }
+
+          <!-- Yêu cầu của tôi — Tất cả user -->
+          <a routerLink="/my-requests" routerLinkActive="active" (click)="closeMobileSidebar()">
+            <span class="material-icons-round">assignment</span>
+            @if (!sidebarCollapsed()) { <span>Yêu cầu của tôi</span> }
+          </a>
         </nav>
 
         <!-- Sidebar Footer -->
         <div class="sidebar-footer">
           <span class="material-icons-round">verified</span>
           @if (!sidebarCollapsed()) {
-            <span>SimpleERP v2.0 — Tuần 11</span>
+            <span>SimpleERP v1.0.0 — Release</span>
           }
         </div>
       </aside>
@@ -210,7 +227,7 @@ import { NotificationService } from '../../services/notification.service';
               </div>
             </div>
             <div class="footer-bottom-right">
-              <span class="footer-version"><span class="material-icons-round">verified</span> v2.0 — Tuần 11</span>
+              <span class="footer-version"><span class="material-icons-round">verified</span> v1.0.0 — Release</span>
             </div>
           </div>
         </footer>
@@ -220,6 +237,11 @@ import { NotificationService } from '../../services/notification.service';
     <!-- Backdrop for user menu -->
     @if (userMenuOpen) {
       <div class="user-menu-backdrop" (click)="userMenuOpen = false"></div>
+    }
+
+    <!-- Tuần 14: Backdrop cho mobile sidebar overlay -->
+    @if (mobileSidebarOpen()) {
+      <div class="mobile-sidebar-backdrop" (click)="closeMobileSidebar()"></div>
     }
 
     <!-- Change Password Modal -->
@@ -386,6 +408,11 @@ import { NotificationService } from '../../services/notification.service';
       padding: 28px;
     }
 
+    /* ===== Tuần 14: Mobile Sidebar Backdrop ===== */
+    .mobile-sidebar-backdrop {
+      display: none;
+    }
+
     /* ===== Responsive ===== */
     @media (max-width: 1024px) {
       .sidebar {
@@ -405,10 +432,51 @@ import { NotificationService } from '../../services/notification.service';
       .sidebar .sidebar-footer { justify-content: center; }
       .main-content { margin-left: 72px; }
     }
+
+    /* Tuần 14: Mobile — Sidebar overlay (≤768px) */
     @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        left: -280px;
+        width: 260px;
+        min-width: 260px;
+        z-index: 200;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .sidebar .brand-text,
+      .sidebar .profile-section,
+      .sidebar .nav-menu a span:not(.material-icons-round),
+      .sidebar .sidebar-footer span:not(.material-icons-round) {
+        display: unset;
+      }
+      .sidebar .sidebar-brand { padding: 24px 20px; justify-content: flex-start; }
+      .sidebar .nav-menu a { justify-content: flex-start; padding: 12px 20px; }
+      .sidebar .nav-label { font-size: 0.65rem; text-align: left; padding: 16px 20px 8px; }
+      .sidebar .nav-label::after { content: none; }
+      .sidebar .sidebar-footer { justify-content: flex-start; }
+
+      .mobile-sidebar-open .sidebar {
+        left: 0;
+      }
+      .mobile-sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 150;
+        backdrop-filter: blur(2px);
+      }
+      .main-content {
+        margin-left: 0 !important;
+      }
+      .sidebar.collapsed ~ .main-content {
+        margin-left: 0;
+      }
       .content-area { padding: 16px; }
       .top-header { padding: 12px 16px; }
       .header-date { display: none; }
+      .header-clock { display: none; }
+      .header-user-info { display: none; }
     }
   `]
 })
@@ -418,6 +486,7 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
   fb = inject(FormBuilder);
 
   sidebarCollapsed = signal(false);
+  mobileSidebarOpen = signal(false); // Tuần 14: Mobile sidebar overlay state
   currentTimeStr = signal('');
   currentDateStr = signal('');
   userMenuOpen = false;
@@ -466,7 +535,19 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
   }
 
   toggleSidebar(): void {
-    this.sidebarCollapsed.update(v => !v);
+    // Tuần 14: Trên mobile (≤768px) toggle overlay, trên desktop toggle collapsed
+    if (window.innerWidth <= 768) {
+      this.mobileSidebarOpen.update(v => !v);
+    } else {
+      this.sidebarCollapsed.update(v => !v);
+    }
+  }
+
+  /** Tuần 14: Đóng mobile sidebar khi chọn menu item */
+  closeMobileSidebar(): void {
+    if (window.innerWidth <= 768) {
+      this.mobileSidebarOpen.set(false);
+    }
   }
 
   toggleUserMenu(): void {

@@ -1060,6 +1060,15 @@
   background: var(--danger);
 }
 
+.status-badge.warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.status-badge.warning::before {
+  background: var(--warning);
+}
+
 /* Action Buttons */
 .td-actions {
   display: flex;
@@ -1789,3 +1798,76 @@ input[type="time"].form-control.is-invalid {
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Tuần 14: Table Responsive & Mobile Utilities ===== */
+
+/* Backdrop cho mobile sidebar overlay */
+.mobile-sidebar-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1040;
+}
+
+/* Wrapper cho bảng dữ liệu — cuộn ngang trên mobile */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive table {
+  min-width: 600px;
+}
+
+/* Cải thiện modal trên mobile */
+@media (max-width: 576px) {
+  .modal-content {
+    margin: 8px !important;
+    max-width: calc(100vw - 16px) !important;
+    max-height: calc(100vh - 16px) !important;
+    border-radius: 12px !important;
+  }
+
+  .modal-body {
+    padding: 16px !important;
+  }
+
+  .modal-footer {
+    padding: 12px 16px !important;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .modal-footer button {
+    flex: 1;
+    min-width: 120px;
+  }
+}
+
+/* Card responsive */
+@media (max-width: 768px) {
+  .card {
+    border-radius: 12px !important;
+  }
+
+  .card-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start !important;
+  }
+
+  .card-header .header-actions {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+
+  .card-header .header-actions button {
+    flex: 1;
+  }
+}

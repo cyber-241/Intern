@@ -54,13 +54,39 @@ export class AuthService {
   // === Tuáº§n 7: Computed signals má»Ÿ rá»™ng ===
 
   /**
-   * computed() â€” Kiá»ƒm tra user cĂ³ pháº£i admin khĂ´ng
-   * DĂ¹ng Ä‘á»ƒ phĂ¢n quyá»n hiá»ƒn thá»‹ menu/chá»©c nÄƒng admin
+   * computed() — Kiểm tra user có phải admin không
+   * Dùng để phân quyền hiển thị menu/chức năng admin
    */
   isAdmin = computed(() => this._currentUser()?.role?.toLowerCase()?.trim() === 'admin');
 
+  // === Tuần 14: Mở rộng phân quyền theo Role ===
+
   /**
-   * computed() â€” TĂªn hiá»ƒn thá»‹ rĂºt gá»n (láº¥y tĂªn cuá»‘i)
+   * computed() — Kiểm tra user có phải manager (trưởng phòng) không
+   */
+  isManager = computed(() => this._currentUser()?.role?.toLowerCase()?.trim() === 'manager');
+
+  /**
+   * computed() — Kiểm tra user có phải manager HOẶC admin không
+   * Dùng cho các chức năng: Duyệt yêu cầu, Xem danh sách đơn toàn công ty
+   */
+  isManagerOrAdmin = computed(() => {
+    const role = this._currentUser()?.role?.toLowerCase()?.trim();
+    return role === 'admin' || role === 'manager';
+  });
+
+  /**
+   * Kiểm tra user hiện tại có role được chỉ định không
+   * Dùng cho guard và logic linh hoạt: hasRole('admin'), hasRole('manager')
+   */
+  hasRole(role: string): boolean {
+    return this._currentUser()?.role?.toLowerCase()?.trim() === role.toLowerCase().trim();
+  }
+
+
+
+  /**
+   * computed() â€” TĂªn hiá»ƒn thá»‹ rĂºt gá» n (láº¥y tĂªn cuá»‘i)
    * "Nguyá»…n Báº£o HĂ¢n" â†’ "HĂ¢n"
    */
   displayName = computed(() => {
